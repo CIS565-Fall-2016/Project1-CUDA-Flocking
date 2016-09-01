@@ -163,7 +163,7 @@ homework, we will use the value/key sort built into **Thrust**. See
 Your uniform grid will probably look something like this in GPU memory:
 - `dev_particleArrayIndices` - buffer containing a pointer for each boid to its
 data in dev_pos and dev_vel1 and dev_vel2
-- `dev_particleGridIndices` - buffer containing
+- `dev_particleGridIndices` - buffer containing a pointer for the sorted uniform grid index to boid index
 - `dev_gridCellStartIndices` - buffer containing a pointer for each cell to the
 beginning of its data in `dev_particleArrayIndices`
 - `dev_gridCellEndIndices` - buffer containing a pointer for each cell to the
