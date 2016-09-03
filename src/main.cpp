@@ -25,7 +25,7 @@ const float DT = 0.2f;
 * C main function.
 */
 int main(int argc, char* argv[]) {
-  projectName = "565 CUDA Intro: Boids";
+  projectName = "565 CUDA Intro: Boids - Trung Le";
 
   if (init(argc, argv)) {
     mainLoop();
@@ -47,6 +47,10 @@ GLFWwindow *window;
 * Initialization of CUDA and GLFW.
 */
 bool init(int argc, char **argv) {
+
+  // Print out our CUDA-capable devices properties
+  printCudaDeviceProperties();
+
   // Set window title to "Student Name: [SM 2.0] GPU Name"
   cudaDeviceProp deviceProp;
   int gpuDevice = 0;
@@ -182,6 +186,63 @@ void initShaders(GLuint * program) {
       glUniform3fv(location, 1, &cameraPosition[0]);
     }
   }
+
+void printCudaDeviceProperties()
+{
+  int deviceCount = 0;
+  cudaGetDeviceCount(&deviceCount);
+
+  cudaDeviceProp deviceProp;
+  for (auto i = 0; i < deviceCount; ++i) {
+    cudaGetDeviceProperties(&deviceProp, i);
+
+    std::cout << "---- General information for device " << i << " ----" << std::endl;
+    std::cout << "Device name: " << deviceProp.name << std::endl;
+    std::cout << "Compute capability: " << deviceProp.major << "." << deviceProp.minor << std::endl;
+    std::cout << "Compute mode: ";
+    switch (deviceProp.computeMode) {
+    case cudaComputeModeDefault:
+      std::cout << "Default" << std::endl;
+      break;
+    case cudaComputeModeExclusive:
+      std::cout << "Exclusive" << std::endl;
+      break;
+    case cudaComputeModeExclusiveProcess:
+      std::cout << "Exclusive process" << std::endl;
+      break;
+    case cudaComputeModeProhibited:
+      std::cout << "Prohibited" << std::endl;
+      break;
+    }
+    std::cout << "Clock rate: " << deviceProp.clockRate << std::endl;
+    std::cout << "Integrated: " << deviceProp.integrated << std::endl;
+    std::cout << "Device copy overlap: ";
+    if (deviceProp.deviceOverlap) {
+      std::cout << "Enabled" << std::endl;
+    }
+    else {
+      std::cout << "Disabled" << std::endl;
+    }
+    std::cout << "Kernel execution timeout: ";
+    if (deviceProp.kernelExecTimeoutEnabled) {
+      std::cout << "Enabled" << std::endl;
+    }
+    else {
+      std::cout << "Disabled" << std::endl;
+    }
+    std::cout << "---- Memory information for device " << i << " ----" << std::endl;
+    std::cout << "Total global memory: " << deviceProp.totalGlobalMem << std::endl;
+    std::cout << "Total constant memory: " << deviceProp.totalConstMem << std::endl;
+    std::cout << "Multiprocessor count: " << deviceProp.multiProcessorCount << std::endl;
+    std::cout << "Shared memory per multiprocessor: " << deviceProp.sharedMemPerMultiprocessor << std::endl;
+    std::cout << "Registers per multiprocessor: " << deviceProp.regsPerMultiprocessor << std::endl;
+    std::cout << "Max threads per multiprocessor: " << deviceProp.maxThreadsPerMultiProcessor << std::endl;
+    std::cout << "Max grid dimensions: [" << deviceProp.maxGridSize[0] << ", " << deviceProp.maxGridSize[1] << ", " << deviceProp.maxGridSize[2] << "]" << std::endl;
+    std::cout << "Max threads per block: " << deviceProp.maxThreadsPerBlock << std::endl;
+    std::cout << "Max registers per block: " << deviceProp.regsPerBlock << std::endl;
+    std::cout << "Max thread dimensions: [" << deviceProp.maxThreadsDim[0] << ", " << deviceProp.maxThreadsDim[1] << ", " << deviceProp.maxThreadsDim[2] << "]" << std::endl;
+  }
+}
 
   //====================================
   // Main loop
