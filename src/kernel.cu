@@ -41,7 +41,9 @@ void checkCUDAError(const char *msg, int line = -1) {
 
 // LOOK-1.2 Parameters for the boids algorithm.
 // These worked well in our reference implementation.
-#define rule1Distance 5.0f
+// Note: 5000 paticles will crash my computer(750M), 
+// I use 1000 as particle count and 25 as neighborhood search radius
+#define rule1Distance 25.0f // 5.0f 
 #define rule2Distance 3.0f
 #define rule3Distance 5.0f
 
@@ -152,8 +154,8 @@ void Boids::initSimulation(int N) {
   checkCUDAErrorWithLine("cudaMalloc dev_vel2 failed!");
 
   // LOOK-1.2 - This is a typical CUDA kernel invocation.
-  kernGenerateRandomPosArray<<<fullBlocksPerGrid, blockSize>>>(1, numObjects,
-    dev_pos, scene_scale);
+  kernGenerateRandomPosArray << <fullBlocksPerGrid, blockSize >> >(1, numObjects,
+	  dev_pos, scene_scale);
   checkCUDAErrorWithLine("kernGenerateRandomPosArray failed!");
 
   // LOOK-2.1 computing grid params
@@ -229,11 +231,95 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 * Compute the new velocity on the body with index `iSelf` due to the `N` boids
 * in the `pos` and `vel` arrays.
 */
+
+/*
+* three Boids velocity rules according to http://www.vergenet.net/~conrad/boids/pseudocode.html
+* rule1 - mass center
+* rule2 - seperate
+* rule3 - cohesion
+*/
+__device__ glm::vec3 getVelMassCenter(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel)
+{
+	glm::vec3 velCenter(0, 0, 0);
+	int neighborCount = 0;
+
+	for (int i = 0; i < N; ++i)
+	{
+		if (i != iSelf && glm::length(pos[i] - pos[iSelf]) < rule1Distance)
+		{
+			velCenter += pos[i];
+			neighborCount++;
+		}
+	}
+
+	if (neighborCount > 0)
+	{
+		velCenter = velCenter / float(neighborCount);
+		return (velCenter - pos[iSelf]) * rule1Scale;
+	}
+	else
+	{
+		return velCenter;
+	}
+
+}
+
+__device__ glm::vec3 getVelSeperation(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel)
+{
+	glm::vec3 velSep(0, 0, 0);
+	//int neighborCount = 0;
+
+	for (int i = 0; i < N; ++i)
+	{
+		if (i != iSelf && glm::length(pos[i] - pos[iSelf]) < rule2Distance)
+		{
+			velSep = velSep - (pos[i] - pos[iSelf]);
+		//	neighborCount++;
+		}
+	}
+
+	return velSep * rule2Scale;
+}
+
+__device__ glm::vec3 getVelCohesion(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel)
+{
+	glm::vec3 velCohesion(0, 0, 0);
+	int neighborCount = 0;
+
+	for (int i = 0; i < N; ++i)
+	{
+		if (i != iSelf && glm::length(pos[i] - pos[iSelf]) < rule3Distance)
+		{
+			velCohesion += vel[i];
+			neighborCount++;
+		}
+	}
+
+	if (neighborCount > 0)
+	{
+		velCohesion = velCohesion / float(neighborCount);
+		return (velCohesion - vel[iSelf]) * rule3Scale;
+	}
+	else
+	{
+		return velCohesion;
+	}
+}
+
+
 __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel) {
+
   // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+	glm::vec3 velCenter = getVelMassCenter(N, iSelf, pos, vel);
+
   // Rule 2: boids try to stay a distance d away from each other
+	glm::vec3 velSeperation = getVelSeperation(N, iSelf, pos, vel);
+
   // Rule 3: boids try to match the speed of surrounding boids
-  return glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 velCohesion = getVelCohesion(N, iSelf, pos, vel);
+
+	// combine all rules, return new Velocity
+	return velCenter + velSeperation + velCohesion;
 }
 
 /**
@@ -242,9 +328,24 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 */
 __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
   glm::vec3 *vel1, glm::vec3 *vel2) {
+
+	int index = threadIdx.x + (blockIdx.x * blockDim.x);
+	if (index >= N)
+	{
+		return;
+	}
+
   // Compute a new velocity based on pos and vel1
+	glm::vec3 newVel = vel1[index] + computeVelocityChange(N, index, pos, vel1);
+
   // Clamp the speed
+	if (glm::length(newVel) > maxSpeed)
+	{
+		newVel = glm::normalize(newVel) * maxSpeed;
+	}
+
   // Record the new velocity into vel2. Question: why NOT vel1?
+	vel2[index] = newVel;
 }
 
 /**
@@ -347,8 +448,28 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 * Step the entire N-body simulation by `dt` seconds.
 */
 void Boids::stepSimulationNaive(float dt) {
+
+	// static variable for ping-pong device buffer (non-copy)
+	// true - update dev_vel1
+	static bool bActiveDevice = false;
+
   // TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
+	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
+	kernUpdateVelocityBruteForce << < fullBlocksPerGrid, blockSize >> >(
+		numObjects, dev_pos, 
+		bActiveDevice ? dev_vel2 : dev_vel1, 
+		bActiveDevice ? dev_vel1 : dev_vel2);
+
+	// update position 
+	kernUpdatePos << < fullBlocksPerGrid, blockSize >> >(
+		numObjects, dt, dev_pos,
+		bActiveDevice ? dev_vel1 : dev_vel2);
+
   // TODO-1.2 ping-pong the velocity buffers
+	bActiveDevice = !bActiveDevice;
+		
+
+
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
