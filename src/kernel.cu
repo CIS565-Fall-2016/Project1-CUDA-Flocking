@@ -41,9 +41,7 @@ void checkCUDAError(const char *msg, int line = -1) {
 
 // LOOK-1.2 Parameters for the boids algorithm.
 // These worked well in our reference implementation.
-// Note: 5000 paticles will crash my computer(750M), 
-// I use 1000 as particle count and 25 as neighborhood search radius
-#define rule1Distance 25.0f // 5.0f 
+#define rule1Distance 5.0f
 #define rule2Distance 3.0f
 #define rule3Distance 5.0f
 
