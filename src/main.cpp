@@ -19,7 +19,7 @@
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
 // note : use Release mode without debugging!
-const int N_FOR_VIS = 15000;
+const int N_FOR_VIS = 20000;
 const float DT = 0.2f;
 
 /**
