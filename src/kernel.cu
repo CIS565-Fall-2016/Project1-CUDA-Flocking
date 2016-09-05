@@ -51,6 +51,9 @@ void checkCUDAError(const char *msg, int line = -1) {
 
 #define maxSpeed 1.0f
 
+#define maxVel 1.0f
+#define minVel -1.0f
+
 /*! Size of the starting area in simulation space. */
 #define scene_scale 100.0f
 
@@ -230,10 +233,44 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 * in the `pos` and `vel` arrays.
 */
 __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel) {
-  // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
-  // Rule 2: boids try to stay a distance d away from each other
-  // Rule 3: boids try to match the speed of surrounding boids
-  return glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 centerOfMass = glm::vec3(0.0f, 0.0f, 0.0f); //rule 1
+	glm::vec3 keepAway     = glm::vec3(0.0f, 0.0f, 0.0f); //rule 2
+	glm::vec3 neighborVels = glm::vec3(0.0f, 0.0f, 0.0f); //rule 3
+
+	int cnt1 = 0;
+	int cnt2 = 0;
+	int cnt3 = 0;
+
+	for (int iBoid = 0; iBoid < N; ++i)
+	{
+		if (iBoid = iSelf) continue;
+
+		// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+		if (glm::length(pos[iBoid] - pos[iSelf]) < rule1Distance)
+		{
+			centerOfMass = centerOfMass + pos[iBoid];
+			++cnt1;
+		}
+		// Rule 2: boids try to stay a distance d away from each other
+		if (glm::length(pos[iBoid] - pos[iSelf]) < rule2Distance)
+		{
+			keepAway = keepAway - (pos[iBoid] - pos[iSelf]);
+			++cnt2;
+		}
+		// Rule 3: boids try to match the speed of surrounding boids
+		if (glm::length(pos[iBoid] - pos[iSelf]) < rule3Distance)
+		{
+			neighborVels = neighborVels + vel[iBoid];
+			++cnt3;
+		}
+	}
+
+	//calculate averaged parameters
+	if (cnt1) centerOfMass = (centerOfMass / float(cnt1)) * rule1Scale;
+	if (cnt2) keepAway = (keepAway / float(cnt2)) * rule2Scale;
+	if (cnt3) neighborVels = (neighborVels / float(cnt3)) * rule3Scale;
+	
+	return vel[iSelf] + centerOfMass + keepAway + neighborVels;
 }
 
 /**
@@ -242,9 +279,24 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 */
 __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
   glm::vec3 *vel1, glm::vec3 *vel2) {
-  // Compute a new velocity based on pos and vel1
-  // Clamp the speed
-  // Record the new velocity into vel2. Question: why NOT vel1?
+
+	//calculate index
+	int index = threadIdx.x + (blockIdx.x * blockDim.x);
+	if (index >= N) {
+		return;
+	}
+
+	// Compute a new velocity based on pos and vel1
+	glm::vec3 newVel = computeVelocityChange(N, index, pos, vel1);
+	
+	// Clamp the speed
+	newVel[0] = glm::clamp(newVel[0], minVel, maxVel);
+	newVel[1] = glm::clamp(newVel[1], minVel, maxVel);
+	newVel[2] = glm::clamp(newVel[2], minVel, maxVel);
+	//newvel = glm::clamp(newvel, glm::vec3(minVel, minVel, minVel), glm::vec3(maxVel, maxVel, maxVel));
+
+	// Record the new velocity into vel2. Question: why NOT vel1? Next result depends on prev vels 
+	vel2[index] = newVel;
 }
 
 /**
