@@ -548,8 +548,6 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	int y_diff = (int(gridIndex3D.y + 0.5f) - y) == 0 ? -1 : 1;
 	int z_diff = (int(gridIndex3D.z + 0.5f) - z) == 0 ? -1 : 1;
 	
-	int gridIndex1D;
-	
 	// new velocities by different rules
 	glm::vec3 velocities[3];
 	int neighborCounts[3];
@@ -559,8 +557,33 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 		neighborCounts[i] = 0;
 	}
 
-	int gridCellCount = gridResolution * gridResolution * gridResolution;
+	//int gridIndex1D;
+	int interestedGridCellIndices[8];
+	interestedGridCellIndices[0] = gridIndex3Dto1D(x,		   y,		   z		 , gridResolution);
+	interestedGridCellIndices[1] = gridIndex3Dto1D(x + x_diff, y, 		   z		 , gridResolution);
+	interestedGridCellIndices[2] = gridIndex3Dto1D(x, 		   y + y_diff, z		 , gridResolution);
+	interestedGridCellIndices[3] = gridIndex3Dto1D(x, 		   y,		   z + z_diff, gridResolution);
+	interestedGridCellIndices[4] = gridIndex3Dto1D(x + x_diff, y + y_diff, z		 , gridResolution);
+	interestedGridCellIndices[5] = gridIndex3Dto1D(x, 		   y + y_diff, z + z_diff, gridResolution);
+	interestedGridCellIndices[6] = gridIndex3Dto1D(x + x_diff, y, 		   z + z_diff, gridResolution);
+	interestedGridCellIndices[7] = gridIndex3Dto1D(x + x_diff, y + y_diff, z + z_diff, gridResolution);
 
+	int gridCellCount = gridResolution * gridResolution * gridResolution;
+	int gridIndex;
+	for(int i=0;i<8;++i)
+	{
+		gridIndex = interestedGridCellIndices[i];
+		if(gridIndex >=0 && gridIndex < gridCellCount)
+		{
+			computeVelocitiesWithinGivenGrid(
+				gridIndex, particleIndex,
+				gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
+				pos, vel1,
+				velocities, neighborCounts);
+		}
+	}
+
+	/*
 	// for (x,y,z) neighborhood
 	gridIndex1D = gridIndex3Dto1D(x, y, z, gridResolution);
 	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
@@ -650,6 +673,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 			pos, vel1,
 			velocities, neighborCounts);
 	}
+	*/
 
 	// compute new speed
 	// rule1 center of mass
