@@ -10,6 +10,10 @@
 #include <vector>
 
 namespace Boids {
+
+	// static variable for ping-pong device buffer
+	static bool bActiveDevice;
+
     void initSimulation(int N);
     void stepSimulationNaive(float dt);
     void stepSimulationScatteredGrid(float dt);
