@@ -335,17 +335,79 @@ __device__ glm::vec3 getVelCohesion(int N, int iSelf, const glm::vec3 *pos, cons
 
 __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel) {
 
-  // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+	glm::vec3 velocities[3];
+	int neighborCount[3];
+	for (int i = 0; i < 3; ++i)
+	{
+		velocities[i] = glm::vec3(0,0,0);
+		neighborCount[i] = 0;
+	}
+
+	for (int i = 0; i < N; ++i)
+	{
+		if (i == iSelf)
+			continue;
+		
+		float distance = glm::length(pos[i] - pos[iSelf]);
+
+		// Rule 1
+		if (distance < rule1Distance)
+		{
+			velocities[0] += pos[i];
+			neighborCount[0]++;
+		}
+
+		// Rule 2
+		if (distance < rule2Distance)
+		{
+			velocities[1] = velocities[1] - (pos[i] - pos[iSelf]);;
+			neighborCount[1]++;
+		}
+
+		// Rule 3
+		if (distance < rule3Distance)
+		{
+			velocities[2] += vel[i];
+			neighborCount[2]++;
+		}
+	}
+
+	// get Center of Mass vel
+	if (neighborCount[0] > 0)
+	{
+		velocities[0] = velocities[0] / float(neighborCount[0]);
+		velocities[0] = (velocities[0] - pos[iSelf]) * rule1Scale;
+	}
+
+	// get separation vel
+	velocities[1] *= rule2Scale;
+
+	// get cohesion vel
+	if (neighborCount[2] > 0)
+	{
+		velocities[2] = velocities[2] / float(neighborCount[2]);
+		velocities[2] = (velocities[2] - vel[iSelf]) * rule3Scale;
+	}
+
+	// sum up
+	return velocities[0] + velocities[1] + velocities[2];
+	
+	/*************************************************************************
+	// *DEPRECATED*
+	// Calculating three velocities by independent functions will harm the performance
+
+	// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
 	glm::vec3 velCenter = getVelMassCenter(N, iSelf, pos, vel);
 
-  // Rule 2: boids try to stay a distance d away from each other
+	// Rule 2: boids try to stay a distance d away from each other
 	glm::vec3 velSeperation = getVelSeperation(N, iSelf, pos, vel);
 
-  // Rule 3: boids try to match the speed of surrounding boids
+	// Rule 3: boids try to match the speed of surrounding boids
 	glm::vec3 velCohesion = getVelCohesion(N, iSelf, pos, vel);
 
 	// combine all rules, return new Velocity
 	return velCenter + velSeperation + velCohesion;
+	*************************************************************************/
 }
 
 /**
@@ -361,16 +423,16 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
 		return;
 	}
 
-  // Compute a new velocity based on pos and vel1
+	// Compute a new velocity based on pos and vel1
 	glm::vec3 newVel = vel1[index] + computeVelocityChange(N, index, pos, vel1);
 
-  // Clamp the speed
+	// Clamp the speed
 	if (glm::length(newVel) > maxSpeed)
 	{
 		newVel = glm::normalize(newVel) * maxSpeed;
 	}
 
-  // Record the new velocity into vel2. Question: why NOT vel1?
+	// Record the new velocity into vel2. Question: why NOT vel1?
 	vel2[index] = newVel;
 }
 
@@ -609,7 +671,6 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 		neighborCounts[i] = 0;
 	}
 
-	//int gridIndex1D;
 	int interestedGridCellIndices[8];
 	interestedGridCellIndices[0] = gridIndex3Dto1D(x,		   y,		   z		 , gridResolution);
 	interestedGridCellIndices[1] = gridIndex3Dto1D(x + x_diff, y, 		   z		 , gridResolution);
@@ -622,7 +683,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 
 	int gridCellCount = gridResolution * gridResolution * gridResolution;
 	int gridIndex;
-	for(int i=0;i<8;++i)
+	for (int i = 0; i < 8; ++i)
 	{
 		gridIndex = interestedGridCellIndices[i];
 		if(gridIndex >=0 && gridIndex < gridCellCount)
@@ -634,98 +695,6 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 				velocities, neighborCounts);
 		}
 	}
-
-	/* ugly codes
-	// for (x,y,z) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x, y, z, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-
-	// for (x+x_diff,y,z) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x + x_diff, y, z, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-
-
-	// for (x,y+y_diff,z) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x, y + y_diff, z, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-
-	// for (x,y,z+z_diff) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x, y, z + z_diff, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-
-	// for (x+x_diff,y+y_diff,z) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x + x_diff, y + y_diff, z, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-
-	// for (x+x_diff,y,z+z_diff) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x + x_diff, y, z + z_diff, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-
-
-	// for (x,y+y_diff,z+z_diff) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x, y + y_diff, z + z_diff, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-
-	// for (x+x_diff,y+y_diff,z+z_diff) neighborhood
-	gridIndex1D = gridIndex3Dto1D(x + x_diff, y + y_diff, z + z_diff, gridResolution);
-	if (gridIndex1D >= 0 && gridIndex1D < gridCellCount)
-	{
-		computeVelocitiesWithinGivenGrid(
-			gridIndex1D, particleIndex,
-			gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
-			pos, vel1,
-			velocities, neighborCounts);
-	}
-	*/
 
 	// compute new speed
 	// rule1 center of mass
@@ -802,7 +771,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 		neighborCounts[i] = 0;
 	}
 
-	//int gridIndex1D;
+	// determine 8 interested adjacent grid cells
 	int interestedGridCellIndices[8];
 	interestedGridCellIndices[0] = gridIndex3Dto1D(x,		   y,		   z		 , gridResolution);
 	interestedGridCellIndices[1] = gridIndex3Dto1D(x + x_diff, y, 		   z		 , gridResolution);
@@ -827,6 +796,28 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 				velocities, neighborCounts);
 		}
 	}
+
+	/************************************************************************
+	// search radius defined by maxExt 
+	int gridCellCount = gridResolution * gridResolution * gridResolution;
+	int gridIndex;
+	int maxExt = 1;
+	for (int dx = -maxExt; dx <= maxExt; ++dx)
+		for (int dy = -maxExt; dy <= maxExt; ++dy)
+			for (int dz = -maxExt; dz <= maxExt; ++dz)
+			{
+				gridIndex = gridIndex3Dto1D(x+dx,y+dy,z+dz, gridResolution);
+				if (gridIndex >= 0 && gridIndex < gridCellCount)
+				{
+					computeVelocitiesWithinGivenGridCoherent(
+						gridIndex, index,
+						gridCellStartIndices, gridCellEndIndices,
+						pos, vel1,
+						velocities, neighborCounts);
+				}
+			}
+	************************************************************************/
+
 
 	// compute new speed
 	// rule1 center of mass

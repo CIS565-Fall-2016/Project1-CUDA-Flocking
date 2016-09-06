@@ -66,6 +66,8 @@ bool init(int argc, char **argv) {
 
   std::ostringstream ss;
   ss << projectName << " [SM " << major << "." << minor << " " << deviceProp.name << "]";
+  ss << ", [Boids number = " << N_FOR_VIS << ", Time step = " << DT << "]";
+  ss << ", [Resolution: " << width << "*" << height << "]";
   deviceName = ss.str();
 
   // Window setup stuff
@@ -221,7 +223,7 @@ void initShaders(GLuint * program) {
     double timebase = 0;
     int frame = 0;
 
-    Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
+    //Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
 
     while (!glfwWindowShouldClose(window)) {
