@@ -243,7 +243,7 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 
 	for (int iBoid = 0; iBoid < N; ++iBoid)
 	{
-		if (iBoid = iSelf) continue;
+		if (iBoid == iSelf) continue;
 
 		// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
 		if (glm::length(pos[iBoid] - pos[iSelf]) < rule1Distance)
