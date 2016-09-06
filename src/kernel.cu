@@ -230,10 +230,26 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 * in the `pos` and `vel` arrays.
 */
 __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel) {
-  // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
-  // Rule 2: boids try to stay a distance d away from each other
-  // Rule 3: boids try to match the speed of surrounding boids
-  return glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 delta_vel(0.0f);
+
+    //thrust::device_vector<int> neighbor_indices;
+    // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+    glm::vec3 neighbor_center_of_mass(0.0f);
+
+    int neighbor_count = 0;
+    for (int i = 0; i < N; i++)
+    {
+        if (i == iSelf){ continue; }
+
+        if (glm::distance(pos[iSelf], pos[i]) < rule1Distance)
+        {
+
+        }
+    }
+    // Rule 2: boids try to stay a distance d away from each other
+
+    // Rule 3: boids try to match the speed of surrounding boids
+    return glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
 /**
@@ -241,10 +257,29 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 * For each of the `N` bodies, update its position based on its current velocity.
 */
 __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
-  glm::vec3 *vel1, glm::vec3 *vel2) {
-  // Compute a new velocity based on pos and vel1
-  // Clamp the speed
-  // Record the new velocity into vel2. Question: why NOT vel1?
+  glm::vec3 *vel1, glm::vec3 *vel2) 
+{
+    // static const float max_sqr_speed = maxSpeed * maxSpeed;
+
+    int index = threadIdx.x + (blockIdx.x * blockDim.x);
+    if (index >= N) 
+    {
+        return;
+    }
+
+    // Compute a new velocity based on pos and vel1
+    glm::vec3 delta_vel = computeVelocityChange(N, index, pos, vel1);
+    glm::vec3 new_vel = vel1[index] + delta_vel;
+
+    // Clamp the speed
+    if (glm::length(new_vel) > maxSpeed)
+    {
+        new_vel = glm::normalize(new_vel) * maxSpeed;
+    }
+
+    // Record the new velocity into vel2. Question: why NOT vel1? 
+    //   Ans: neighbors need vel1 to update their velocity
+    vel2[index] = new_vel;
 }
 
 /**
@@ -347,7 +382,12 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 * Step the entire N-body simulation by `dt` seconds.
 */
 void Boids::stepSimulationNaive(float dt) {
-  // TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
+  
+    // TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
+    
+
+
+
   // TODO-1.2 ping-pong the velocity buffers
 }
 
