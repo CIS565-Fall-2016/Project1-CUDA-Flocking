@@ -223,6 +223,11 @@ void initShaders(GLuint * program) {
     double timebase = 0;
     int frame = 0;
 
+	double avg_cudaElaspedTime = 0;
+	double cudaElapsedTime = 0;
+	double cudaElaspedTimebase = 0;
+	int cudaRunCount = 0;
+
     //Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
 
@@ -238,13 +243,38 @@ void initShaders(GLuint * program) {
         frame = 0;
       }
 
-      runCUDA();
+	  /* use cuda event to calculate runCuda() time elapsed (accumulate and average over a time period = 0.1s)*/
+	  cudaRunCount++;
 
+	  cudaEvent_t start, stop;
+	  float elapsedTime = 0;
+
+	  cudaEventCreate(&start);
+	  cudaEventRecord(start, 0);
+
+      runCUDA();
+	  
+	  cudaEventCreate(&stop);
+	  cudaEventRecord(stop, 0);
+	  cudaEventSynchronize(stop);
+
+	  cudaEventElapsedTime(&elapsedTime, start, stop);
+
+	  cudaElapsedTime += elapsedTime;
+	  if (cudaElapsedTime - cudaElaspedTimebase > 100)
+	  {
+		  avg_cudaElaspedTime = (cudaElapsedTime - cudaElaspedTimebase) / float(cudaRunCount);
+		  cudaRunCount = 0;
+		  cudaElaspedTimebase = cudaElapsedTime;
+	  }
+
+	  // write information to window's title
       std::ostringstream ss;
       ss << "[";
       ss.precision(1);
       ss << std::fixed << fps;
       ss << " fps] " << deviceName;
+	  ss << " [runCUDA() elapsed time = " << avg_cudaElaspedTime << " ms]";
       glfwSetWindowTitle(window, ss.str().c_str());
 
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
