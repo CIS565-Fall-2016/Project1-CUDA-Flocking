@@ -238,6 +238,7 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 	glm::vec3 neighborVels = glm::vec3(0.0f, 0.0f, 0.0f); //rule 3
 
 	int cnt1 = 0;
+	int cnt3 = 0;
 
 	for (int iBoid = 0; iBoid < N; ++iBoid)
 	{
@@ -256,13 +257,16 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 
 		// Rule 3: boids try to match the speed of surrounding boids
 		if (glm::length(pos[iBoid] - pos[iSelf]) < rule3Distance)
+		{
 			neighborVels = neighborVels + vel[iBoid];
+			++cnt3;
+		}
 	}
 
 	//calculate averaged parameters
-	if (cnt1) centerOfMass = ((centerOfMass / float(cnt1)) - pos[iSelf]) * rule1Scale;
+	if (cnt1) centerOfMass = (centerOfMass / (float) cnt1 - pos[iSelf]) * rule1Scale;
 	keepAway = keepAway * rule2Scale;
-	neighborVels = neighborVels * rule3Scale;
+	if (cnt3) neighborVels = (neighborVels / (float) cnt3 - vel[iSelf]) * rule3Scale;
 	
 	return vel[iSelf] + centerOfMass + keepAway + neighborVels;
 }
