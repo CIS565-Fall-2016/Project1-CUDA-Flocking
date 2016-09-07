@@ -18,7 +18,7 @@
 #define COHERENT_GRID 0
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 10000;
 const float DT = 0.2f;
 
 /**
@@ -250,7 +250,10 @@ void initShaders(GLuint * program) {
       glUseProgram(program[PROG_BOID]);
       glBindVertexArray(boidVAO);
       glPointSize(pointSize);
-      glDrawElements(GL_POINTS, N_FOR_VIS + 1, GL_UNSIGNED_INT, 0);
+	  //glDrawElementsInstanced(GL_POINTS, 1, GL_UNSIGNED_INT, 0, N_FOR_VIS + 1);
+	  glDrawElements(GL_POINTS, N_FOR_VIS + 1, GL_UNSIGNED_INT, 0);
+	  //for (int i = 0; i < N_FOR_VIS / 2; ++i)
+		 //glDrawArraysInstanced(GL_POINTS, 0, 4, N_FOR_VIS + 1);
       glPointSize(1.0f);
 
       glUseProgram(0);
