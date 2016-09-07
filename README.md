@@ -25,6 +25,10 @@ Project 1 - Flocking**
     even though the complexity of each thread is O(n) but there are too many particles and hence too many threads. So it is
     impossible to parallize all the threads at once. Therefore, the time complexity should still grow in a polynomial fashion
     but less sensitive than sequential implementation.
+  * For the scattered and coherent grid versions, they still demonstrates a little polynomial growth but the speed is much
+    slower and their growth seems almost linear. This is expected because each particle has much fewer neighbours to examine
+    in each step. Statistically, the number of neighbours grows linearly as particle count increases. But the number of threads
+    also increase at the same time so the time complexity of the implementation should be a liitle bit more expensible than O(n).
     ![sp](images/st_pc.png)
 
 * Simulation Time vs. Block Size
