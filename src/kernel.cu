@@ -243,8 +243,24 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
   glm::vec3 *vel1, glm::vec3 *vel2) {
   // Compute a new velocity based on pos and vel1
+	int index = threadIdx.x + (blockIdx.x * blockDim.x);
+
+	glm::vec3 c_vel, n_vel, c_pos;
+	
+	c_pos = pos[index];
+	c_vel = vel1[index];
+	
+	n_vel = computeVelocityChange(N, index, pos, vel1);
+
   // Clamp the speed
+	float speed = glm::length(n_vel);
+	if (speed > maxSpeed) {
+		// I think this will work...
+		n_vel = glm::normalize(n_vel) * maxSpeed;
+	}
+
   // Record the new velocity into vel2. Question: why NOT vel1?
+	vel2[index] = n_vel;
 }
 
 /**
@@ -258,7 +274,7 @@ __global__ void kernUpdatePos(int N, float dt, glm::vec3 *pos, glm::vec3 *vel) {
     return;
   }
   glm::vec3 thisPos = pos[index];
-  thisPos += vel[index] * dt + 0.1f;
+  thisPos += vel[index] * dt;
 
   // Wrap the boids around so we don't lose them
   thisPos.x = thisPos.x < -scene_scale ? scene_scale : thisPos.x;
@@ -348,7 +364,9 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 */
 void Boids::stepSimulationNaive(float dt) {
 	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
-	std::cout << "Stepping with time: " << dt << std::endl;
+
+	kernUpdateVelocityBruteForce << < fullBlocksPerGrid, threadsPerBlock >> >(numObjects, dev_pos,
+		dev_vel1, dev_vel2);
 	kernUpdatePos<<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dt, dev_pos, dev_vel1);
 }
 
