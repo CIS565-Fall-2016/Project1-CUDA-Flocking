@@ -411,38 +411,59 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
 __device__ int getNeighbors(int index, glm::vec3 pos, float inverseCellWidth, 
 	float CellWidth, int gridResolution, int * neighbors)
 {
-	int x, y, z = 0;
 	float halfWidth = CellWidth * 0.5;
-	int gridCell = vec3ToGridIndex(pos, inverseCellWidth, gridResolution);
+  glm::vec3 myGridPos = glm::vec3((int)(pos.x * inverseCellWidth),
+                                  (int)(pos.y * inverseCellWidth),
+                                  (int)(pos.z * inverseCellWidth));
 
-	vec3ToGridIndex(glm::vec3(pos.x + halfWidth, pos.y, pos.z), inverseCellWidth, gridResolution) == gridCell)
-	{
-		x = 1;
-		neighbors[0] = index + 1; //what if its at the end?
-	}
-	else
-	{
-		neighbors[0] = index - 1; //what if its at the beginning?
-	}
+  glm::vec3 gridStart = glm::vec3( 0, 0, 0 );
+  glm::vec3 gridEnd = glm::vec3( 0, 0, 0 );
 
+	if (vec3ToGridIndex(glm::vec3(pos.x + halfWidth, pos.y, pos.z), inverseCellWidth, gridResolution) == gridCell)
+		gridStart.x = -1 ;
+  else 
+    gridEnd.x = 1 ;
 
 	if (vec3ToGridIndex(glm::vec3(pos.x, pos.y + halfWidth, pos.z), inverseCellWidth, gridResolution) == gridCell)
-	{
-		y = 1;
-		neighbors[1] = index + gridResolution; //what if its at the end?
-		if (x)
-		{
-
-		}
-	}
-	else
-	{
-		neighbors[1] = index - gridResolution; //what if its at the beginning?
-	}
+		gridStart.y = -1 ;
+  else 
+    gridEnd.y = 1 ;
 
 	if (vec3ToGridIndex(glm::vec3(pos.x, pos.y, pos.z + halfWidth), inverseCellWidth, gridResolution) == gridCell)
-		z = 1;
+		gridStart.z = -1 ;
+  else 
+    gridEnd.z = 1 ;
 
+  //calculate which cells are adjacent to me and put them in the buffer
+  int neigborCnt = 0
+
+  for (int i = myGridPos.x + gridStart.x; i < myGridPos.x + gridEnd.x; ++i)
+  {
+    if (i < 0 || i >= gridResolution)
+      continue;
+
+    for (int j = myGridPos.y + gridStart.y; j < myGridPos.y + gridEnd.y; ++j)
+    {
+      if (j < 0 || j >= gridResolution)
+        continue;
+
+      for (int k = myGridPos.z + gridStart.z; k < myGridPos.z + gridEnd.z; ++k)
+      {
+        if (k < 0 || k >= gridResolution)
+          continue;
+
+
+
+
+        ++ neigborCnt;
+      }
+
+    }
+
+  }
+
+  //our cell is always a "neighbor"
+  neighbors[neighborCnt] = vec3ToGridIndex(pos, inverseCellWidth, gridResolution); // not sure this is the right thing 
 
 }
 
