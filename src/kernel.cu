@@ -223,10 +223,10 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 * stepSimulation *
 ******************/
 
-__device__ glm::vec3 computeVelocity1(int N, const glm::vec3 *pos)
-{
-
-}
+//__device__ glm::vec3 computeVelocity1(int N, const glm::vec3 *pos)
+//{
+//
+//}
 
 /**
 * LOOK-1.2 You can use this as a helper for kernUpdateVelocityBruteForce.
@@ -238,15 +238,74 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
   // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
   // Rule 2: boids try to stay a distance d away from each other
   // Rule 3: boids try to match the speed of surrounding boids
-	glm::vec3 centre(0.0f, 0.0f, 0.0f);
+	glm::vec3 v1(0.0f, 0.0f, 0.0f);
+	glm::vec3 v2(0.0f, 0.0f, 0.0f);
+	glm::vec3 v3(0.0f, 0.0f, 0.0f);
+
+	int counter1 = 0;
+	int counter2 = 0;
+	int counter3 = 0;
+
+	// Rule 1
 	for (int i = 0; i < N; i++)
 	{
 		if (i != iSelf)
-			centre += pos[i];
-	}
-	centre /= N - 1;
+		{
+			float distance = glm::length(pos[i] - pos[iSelf]);
+			if (distance < rule1Distance)
+			{
+				v1 += pos[i];
+				counter1++;
+			}
 
-  return (centre - pos[iSelf]) / 100.0f;
+			if (distance < rule2Distance)
+			{
+				v2 -= pos[i] - pos[iSelf];
+			}
+
+			if (distance < rule3Distance)
+			{
+				v3 += vel[i];
+				counter3++;
+			}
+
+
+		}
+
+		
+	}
+	v1 /= counter1;
+	v3 /= counter3;
+
+	v1 = (v1 - pos[iSelf]) * rule1Scale;
+	v2 = v2 * rule2Scale;
+	v3 = (v3 - vel[iSelf]) * rule3Scale;
+
+
+	//// Rule 2
+	//for (int i = 0; i < N; i++)
+	//{
+	//	if (i != iSelf)
+	//	{
+	//		glm::vec3 temp = pos[i] - pos[iSelf];
+	//		if ( glm::length(temp) < 100)
+	//			result -= temp; 
+	//	}
+	//}
+
+	//// Rule 3
+	//glm::vec3 v(0.0f, 0.0f, 0.0f);
+	//for (int i = 0; i < N; i++)
+	//{
+	//	if (i != iSelf)
+	//	{
+	//		v += vel[i];
+	//	}
+	//}
+	//v /= N - 1;
+	//result += (v - vel[iSelf]) / 8.0f;
+
+	return v1 + v2 + v3;
 }
 
 /**
@@ -261,7 +320,11 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
 	  int index = threadIdx.x + (blockIdx.x * blockDim.x);
 	  if (index >= N)
 		  return;
-	  vel1[index] = vel1[index] + computeVelocityChange(N, index, pos, vel1);
+	  vel2[index] = vel1[index] + computeVelocityChange(N, index, pos, vel1);
+
+	  vel2[index].x = vel2[index].x > maxSpeed ? maxSpeed : vel2[index].x;
+	  vel2[index].y = vel2[index].y > maxSpeed ? maxSpeed : vel2[index].y;
+	  vel2[index].z = vel2[index].z > maxSpeed ? maxSpeed : vel2[index].z;
 }
 
 /**
@@ -368,9 +431,9 @@ void Boids::stepSimulationNaive(float dt) {
   // TODO-1.2 ping-pong the velocity buffers
 	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
 	kernUpdateVelocityBruteForce<< <fullBlocksPerGrid, blockSize >> >(numObjects, dev_pos, dev_vel1, dev_vel2);
-	//glm::vec3* temp = dev_vel1;
-	//dev_vel1 = dev_vel2;
-	//dev_vel2 = dev_vel1;
+	glm::vec3* temp = dev_vel1;
+	dev_vel1 = dev_vel2;
+	dev_vel2 = dev_vel1;
 	kernUpdatePos<< <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_pos, dev_vel1);
 }
 
