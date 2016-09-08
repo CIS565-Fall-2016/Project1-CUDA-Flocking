@@ -485,17 +485,23 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	}
 
 
-	//int particleCell = particleArrayIndices[particleNum];
+	 int myBoidIndex = particleArrayIndices[particleNum];
 
 	//Get a list of the grid cells that this particle is in
 	//and its closest relevant neighbors
 	int neighbors[9];
-	int neighborCnt = getNeighbors(pos[particleArrayIndices[particleNum]], 
+	int neighborCnt = getNeighbors(pos[myBoidIndex],
 							inverseCellWidth, cellWidth, gridResolution, neighbors);
+
+	glm::vec3 centerOfMass = glm::vec3(0.0f, 0.0f, 0.0f); //rule 1
+	glm::vec3 keepAway = glm::vec3(0.0f, 0.0f, 0.0f); //rule 2
+	glm::vec3 neighborVels = glm::vec3(0.0f, 0.0f, 0.0f); //rule 3
+
+	int cnt1 = 0;
+	int cnt3 = 0;
 
 	for (int i = 0; neighborCnt; ++i)
 	{
-
 		// For each cell, read the start/end indices in the boid pointer array.
 		int currentCellIndex = neighbors[i];
 		int startIndex = gridCellStartIndices[currentCellIndex];
@@ -505,10 +511,26 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 		// the boids rules, if this boid is within the neighborhood distance.
 		for (int iterIndex = startIndex; iterIndex <= endIndex; ++iterIndex)
 		{
-			int currentBoidIndex = particleArrayIndices[iterIndex];
+			int neighborBoidIndex = particleArrayIndices[iterIndex];
 
+			if (myBoidIndex == neighborBoidIndex) continue;
 
+			// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+			if (glm::length(pos[neighborBoidIndex] - pos[myBoidIndex]) < rule1Distance)
+			{
+				centerOfMass = centerOfMass + pos[neighborBoidIndex];
+				++cnt1;
+			}
+			// Rule 2: boids try to stay a distance d away from each other
+			if (glm::length(pos[neighborBoidIndex] - pos[myBoidIndex]) < rule2Distance)
+				keepAway = keepAway - (pos[myBoidIndex] - pos[myBoidIndex]);
 
+			// Rule 3: boids try to match the speed of surrounding boids
+			if (glm::length(pos[neighborBoidIndex] - pos[myBoidIndex]) < rule3Distance)
+			{
+				neighborVels = neighborVels + vel1[neighborBoidIndex];
+				++cnt3;
+			}
 		}
 
 
