@@ -19,7 +19,7 @@
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
 // note : use Release mode without debugging!
-const int N_FOR_VIS = 20000;
+const int N_FOR_VIS = 30000;
 const float DT = 0.2f;
 
 /**
@@ -261,11 +261,13 @@ void initShaders(GLuint * program) {
 	  cudaEventElapsedTime(&elapsedTime, start, stop);
 
 	  cudaElapsedTime += elapsedTime;
-	  if (cudaElapsedTime - cudaElaspedTimebase > 100)
+	  //if (cudaElapsedTime - cudaElaspedTimebase > 100) // 100ms
+	  if (cudaRunCount > 100) // 100 runs
 	  {
 		  avg_cudaElaspedTime = (cudaElapsedTime - cudaElaspedTimebase) / float(cudaRunCount);
 		  cudaRunCount = 0;
 		  cudaElaspedTimebase = cudaElapsedTime;
+		  std::cout << fps << ", " << avg_cudaElaspedTime << std::endl;
 	  }
 
 	  // write information to window's title
