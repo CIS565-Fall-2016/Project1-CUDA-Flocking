@@ -367,8 +367,7 @@ __global__ void kernComputeIndices(int N, int gridResolution,
 
     // - Set up a parallel array of integer indices as pointers to the actual
     //   boid data in pos and vel1/vel2
-	indices[index] = index; //index corresponds to gridIndices, points to boid index
-
+	indices[index] = index; //index corresponds to gridIndices indices, points to boid index
 }
 
 // LOOK-2.1 Consider how this could be useful for indicating that a cell
@@ -382,10 +381,28 @@ __global__ void kernResetIntBuffer(int N, int *intBuffer, int value) {
 
 __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
   int *gridCellStartIndices, int *gridCellEndIndices) {
-  // TODO-2.1
-  // Identify the start point of each cell in the gridIndices array.
-  // This is basically a parallel unrolling of a loop that goes
-  // "this index doesn't match the one before it, must be a new cell!"
+
+	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if (index >= N)
+	{
+		return;
+	}
+
+	// Identify the start point of each cell in the gridIndices array.
+	// This is basically a parallel unrolling of a loop that goes
+	// "this index doesn't match the one before it, must be a new cell!"
+	int myCell = particleGridIndices[index];
+
+	if (index == 0 || particleGridIndices[index - 1] != myCell)
+	{
+		gridCellStartIndices[myCell] = index;
+	}
+
+	if (index == N-1 || particleGridIndices[index + 1] != myCell)
+	{
+		gridCellEndIndices[myCell] = index;
+	}
+
 }
 
 __global__ void kernUpdateVelNeighborSearchScattered(
