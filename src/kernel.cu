@@ -260,7 +260,7 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 		newVel += cohesion * rule3Scale;
 	}
 	newVel += separate * rule2Scale;
-	newVel = glm::clamp(newVel, glm::vec3(-maxSpeed), glm::vec3(maxSpeed));
+	newVel = glm::normalize(newVel) * maxSpeed;
 	return newVel;
 }
 
