@@ -258,7 +258,7 @@ __global__ void kernUpdatePos(int N, float dt, glm::vec3 *pos, glm::vec3 *vel) {
     return;
   }
   glm::vec3 thisPos = pos[index];
-  thisPos += vel[index] * dt;
+  thisPos += vel[index] * dt + 0.1f;
 
   // Wrap the boids around so we don't lose them
   thisPos.x = thisPos.x < -scene_scale ? scene_scale : thisPos.x;
@@ -347,8 +347,9 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 * Step the entire N-body simulation by `dt` seconds.
 */
 void Boids::stepSimulationNaive(float dt) {
-  // TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
-  // TODO-1.2 ping-pong the velocity buffers
+	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
+	std::cout << "Stepping with time: " << dt << std::endl;
+	kernUpdatePos<<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dt, dev_pos, dev_vel1);
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
