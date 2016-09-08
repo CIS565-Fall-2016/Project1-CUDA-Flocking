@@ -408,63 +408,64 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
 
 }
 
-__device__ int getNeighbors(int index, glm::vec3 pos, float inverseCellWidth, 
-	float CellWidth, int gridResolution, int * neighbors)
+__device__ int getNeighbors(glm::vec3 pos, float inverseCellWidth, 
+	float cellWidth, int gridResolution, int * neighbors)
 {
-	float halfWidth = CellWidth * 0.5;
-  glm::vec3 myGridPos = glm::vec3((int)(pos.x * inverseCellWidth),
-                                  (int)(pos.y * inverseCellWidth),
-                                  (int)(pos.z * inverseCellWidth));
+	float halfWidth = cellWidth * 0.5;
+	glm::vec3 myGridPos = glm::vec3((int)(pos.x * inverseCellWidth),
+                                    (int)(pos.y * inverseCellWidth),
+                                    (int)(pos.z * inverseCellWidth));
 
-  glm::vec3 gridStart = glm::vec3( 0, 0, 0 );
-  glm::vec3 gridEnd = glm::vec3( 0, 0, 0 );
+	glm::vec3 gridStart = glm::vec3( 0, 0, 0 );
+	glm::vec3 gridEnd = glm::vec3( 0, 0, 0 );
 
-	if (vec3ToGridIndex(glm::vec3(pos.x + halfWidth, pos.y, pos.z), inverseCellWidth, gridResolution) == gridCell)
+	//if adding a halfwidth results in the same tile, then they are in 
+	if (((pos.x + halfWidth) * inverseCellWidth) == myGridPos.x)
 		gridStart.x = -1 ;
-  else 
-    gridEnd.x = 1 ;
-
-	if (vec3ToGridIndex(glm::vec3(pos.x, pos.y + halfWidth, pos.z), inverseCellWidth, gridResolution) == gridCell)
+	else 
+		gridEnd.x = 1 ;
+	
+	if ((int)((pos.y + halfWidth) * inverseCellWidth) == myGridPos.y)
 		gridStart.y = -1 ;
-  else 
-    gridEnd.y = 1 ;
+	else 
+		gridEnd.y = 1 ;
 
-	if (vec3ToGridIndex(glm::vec3(pos.x, pos.y, pos.z + halfWidth), inverseCellWidth, gridResolution) == gridCell)
+	if ((int)((pos.z + halfWidth) * inverseCellWidth) == myGridPos.z)
 		gridStart.z = -1 ;
-  else 
-    gridEnd.z = 1 ;
+	else 
+		gridEnd.z = 1 ;
 
-  //calculate which cells are adjacent to me and put them in the buffer
-  int neigborCnt = 0
+	//our cell is always a "neighbor"
+	neighbors[0] = gridIndex3Dto1D(myGridPos.x, myGridPos.y, myGridPos.z, gridResolution);
+	
+	//calculate which cells are adjacent to me and put them in the buffer
+	int neighborCnt = 1; //self index is already in buffer, so start at 1
 
-  for (int i = myGridPos.x + gridStart.x; i < myGridPos.x + gridEnd.x; ++i)
-  {
-    if (i < 0 || i >= gridResolution)
-      continue;
+	for (int i = myGridPos.x + gridStart.x; i < myGridPos.x + gridEnd.x; ++i)
+	{
+	if (i < 0 || i >= gridResolution)
+		continue;
 
-    for (int j = myGridPos.y + gridStart.y; j < myGridPos.y + gridEnd.y; ++j)
-    {
-      if (j < 0 || j >= gridResolution)
-        continue;
+		for (int j = myGridPos.y + gridStart.y; j < myGridPos.y + gridEnd.y; ++j)
+		{
+			if (j < 0 || j >= gridResolution)
+			continue;
 
-      for (int k = myGridPos.z + gridStart.z; k < myGridPos.z + gridEnd.z; ++k)
-      {
-        if (k < 0 || k >= gridResolution)
-          continue;
+			for (int k = myGridPos.z + gridStart.z; k < myGridPos.z + gridEnd.z; ++k)
+			{
+				if (k < 0 || k >= gridResolution)
+					continue;
 
+				neighbors[neighborCnt] = gridIndex3Dto1D(i, j, k, gridResolution); 
 
+				++ neighborCnt;
+			}
 
+		}
 
-        ++ neigborCnt;
-      }
+	}
 
-    }
-
-  }
-
-  //our cell is always a "neighbor"
-  neighbors[neighborCnt] = vec3ToGridIndex(pos, inverseCellWidth, gridResolution); // not sure this is the right thing 
-
+  return neighborCnt ;
 }
 
 __global__ void kernUpdateVelNeighborSearchScattered(
@@ -473,21 +474,47 @@ __global__ void kernUpdateVelNeighborSearchScattered(
   int *gridCellStartIndices, int *gridCellEndIndices,
   int *particleArrayIndices,
   glm::vec3 *pos, glm::vec3 *vel1, glm::vec3 *vel2) {
-  // TODO-2.1 - Update a boid's velocity using the uniform grid to reduce
-  // the number of boids that need to be checked.
+
+	// Update a boid's velocity using the uniform grid to reduce
+	// the number of boids that need to be checked.
+	
 	int particleNum = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (particleNum >= N)
 	{
 		return;
 	}
 
-  // - Identify the grid cell that this particle is in
-	int particleCell = particleArrayIndices[particleNum];
 
-  // - Identify which cells may contain neighbors. This isn't always 8.
-  // - For each cell, read the start/end indices in the boid pointer array.
-  // - Access each boid in the cell and compute velocity change from
-  //   the boids rules, if this boid is within the neighborhood distance.
+	//int particleCell = particleArrayIndices[particleNum];
+
+	//Get a list of the grid cells that this particle is in
+	//and its closest relevant neighbors
+	int neighbors[9];
+	int neighborCnt = getNeighbors(pos[particleArrayIndices[particleNum]], 
+							inverseCellWidth, cellWidth, gridResolution, neighbors);
+
+	for (int i = 0; neighborCnt; ++i)
+	{
+
+		// For each cell, read the start/end indices in the boid pointer array.
+		int currentCellIndex = neighbors[i];
+		int startIndex = gridCellStartIndices[currentCellIndex];
+		int endIndex = gridCellEndIndices[currentCellIndex];
+
+		// Access each boid in the cell and compute velocity change from
+		// the boids rules, if this boid is within the neighborhood distance.
+		for (int iterIndex = startIndex; iterIndex <= endIndex; ++iterIndex)
+		{
+			int currentBoidIndex = particleArrayIndices[iterIndex];
+
+
+
+		}
+
+
+	}
+
+
   // - Clamp the speed change before putting the new speed in vel2
 }
 
