@@ -75,12 +75,6 @@ glm::vec3 *dev_vel2;
 
 // LOOK-2.1 - these are NOT allocated for you. You'll have to set up the thrust
 // pointers on your own too.
-glm::vec3 **dev_particleArrayIndicies;
-int *dev_particleGridIndices;
-int *dev_gridCellStartIndices;
-int *dev_gridCellEdIndices;
-
-
 // For efficient sorting and the uniform grid. These should always be parallel.
 int *dev_particleArrayIndices; // What index in dev_pos and dev_velX represents this particle?
 int *dev_particleGridIndices; // What grid cell is this particle in?
@@ -90,6 +84,8 @@ thrust::device_ptr<int> dev_thrust_particleGridIndices;
 
 int *dev_gridCellStartIndices; // What part of dev_particleArrayIndices belongs
 int *dev_gridCellEndIndices;   // to this cell?
+
+
 
 // TODO-2.3 - consider what additional buffers you might need to reshuffle
 // the position and velocity data to be coherent within cells.
@@ -177,16 +173,16 @@ void Boids::initSimulation(int N) {
   gridMinimum.z -= halfGridWidth;
 
   // TODO-2.1 TODO-2.3 - Allocate additional buffers here.
-  cudaMalloc((void**)&dev_particleArrayIndices, N * 3 * sizeof(glm::vec3 *));
+  cudaMalloc((void**)&dev_particleArrayIndices, N * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_particleArrayIndices failed!");
 
   cudaMalloc((void**)&dev_particleGridIndices, N * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_particleGridIndices failed!");
 
-  cudaMalloc((void**)&dev_gridCellStartIndices, N * sizeof(int));
+  cudaMalloc((void**)&dev_gridCellStartIndices, gridCellCount * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_gridCellStartIndices failed!");
 
-  cudaMalloc((void**)&dev_gridCellEndIndices, N * sizeof(int));
+  cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
 
   cudaThreadSynchronize();
@@ -352,18 +348,27 @@ __device__ int gridIndex3Dto1D(int x, int y, int z, int gridResolution) {
 __global__ void kernComputeIndices(int N, int gridResolution,
   glm::vec3 gridMin, float inverseCellWidth,
   glm::vec3 *pos, int *indices, int *gridIndices) {
-    // TODO-2.1
+    
+	float cellWidth = 1.0f / inverseCellWidth;
+
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (index >= N) 
 	{
 		return;
 	}
     // Label each boid with the index of its grid cell.
-	int boidX, boidY, boidZ;
-	boidX = (int)pos[index].x / 
+	int gridCell = gridIndex3Dto1D(
+		(int)(pos[index].x / cellWidth), 
+		(int)(pos[index].y / cellWidth), 
+		(int)(pos[index].z / cellWidth), gridResolution);
+	
+	gridIndices[index] = gridCell; //index is boid index, points to grid index
+
 
     // - Set up a parallel array of integer indices as pointers to the actual
     //   boid data in pos and vel1/vel2
+	indices[index] = index; //index corresponds to gridIndices, points to boid index
+
 }
 
 // LOOK-2.1 Consider how this could be useful for indicating that a cell
