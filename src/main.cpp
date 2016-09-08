@@ -284,12 +284,12 @@ void initShaders(GLuint * program) {
       // compute new camera parameters
       phi += (xpos - lastX) / width;
       theta -= (ypos - lastY) / height;
-      theta = std::fmax(0.01f, std::fmin(theta, 3.14f));
+      theta = std::max(0.01f, std::min(theta, 3.14f));
       updateCamera();
     }
     else if (rightMousePressed) {
       zoom += (ypos - lastY) / height;
-      zoom = std::fmax(0.1f, std::fmin(zoom, 5.0f));
+      zoom = std::max(0.1f, std::min(zoom, 5.0f));
       updateCamera();
     }
 
