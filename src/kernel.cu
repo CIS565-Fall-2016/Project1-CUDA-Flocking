@@ -345,11 +345,17 @@ __device__ int gridIndex3Dto1D(int x, int y, int z, int gridResolution) {
   return x + y * gridResolution + z * gridResolution * gridResolution;
 }
 
+__device__ int vec3ToGridIndex(glm::vec3 pos, float inverseCellWidth, int gridResolution)
+{
+	return  gridIndex3Dto1D(
+		(int)(pos.x * inverseCellWidth),
+		(int)(pos.y * inverseCellWidth),
+		(int)(pos.z * inverseCellWidth), gridResolution);
+}
+
 __global__ void kernComputeIndices(int N, int gridResolution,
   glm::vec3 gridMin, float inverseCellWidth,
   glm::vec3 *pos, int *indices, int *gridIndices) {
-    
-	float cellWidth = 1.0f / inverseCellWidth;
 
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (index >= N) 
@@ -357,11 +363,8 @@ __global__ void kernComputeIndices(int N, int gridResolution,
 		return;
 	}
     // Label each boid with the index of its grid cell.
-	int gridCell = gridIndex3Dto1D(
-		(int)(pos[index].x / cellWidth), 
-		(int)(pos[index].y / cellWidth), 
-		(int)(pos[index].z / cellWidth), gridResolution);
-	
+	int gridCell = vec3ToGridIndex(pos[index], inverseCellWidth, gridResolution);
+
 	gridIndices[index] = gridCell; //index is boid index, points to grid index
 
 
@@ -405,6 +408,44 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
 
 }
 
+__device__ int getNeighbors(int index, glm::vec3 pos, float inverseCellWidth, 
+	float CellWidth, int gridResolution, int * neighbors)
+{
+	int x, y, z = 0;
+	float halfWidth = CellWidth * 0.5;
+	int gridCell = vec3ToGridIndex(pos, inverseCellWidth, gridResolution);
+
+	vec3ToGridIndex(glm::vec3(pos.x + halfWidth, pos.y, pos.z), inverseCellWidth, gridResolution) == gridCell)
+	{
+		x = 1;
+		neighbors[0] = index + 1; //what if its at the end?
+	}
+	else
+	{
+		neighbors[0] = index - 1; //what if its at the beginning?
+	}
+
+
+	if (vec3ToGridIndex(glm::vec3(pos.x, pos.y + halfWidth, pos.z), inverseCellWidth, gridResolution) == gridCell)
+	{
+		y = 1;
+		neighbors[1] = index + gridResolution; //what if its at the end?
+		if (x)
+		{
+
+		}
+	}
+	else
+	{
+		neighbors[1] = index - gridResolution; //what if its at the beginning?
+	}
+
+	if (vec3ToGridIndex(glm::vec3(pos.x, pos.y, pos.z + halfWidth), inverseCellWidth, gridResolution) == gridCell)
+		z = 1;
+
+
+}
+
 __global__ void kernUpdateVelNeighborSearchScattered(
   int N, int gridResolution, glm::vec3 gridMin,
   float inverseCellWidth, float cellWidth,
@@ -413,7 +454,15 @@ __global__ void kernUpdateVelNeighborSearchScattered(
   glm::vec3 *pos, glm::vec3 *vel1, glm::vec3 *vel2) {
   // TODO-2.1 - Update a boid's velocity using the uniform grid to reduce
   // the number of boids that need to be checked.
+	int particleNum = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if (particleNum >= N)
+	{
+		return;
+	}
+
   // - Identify the grid cell that this particle is in
+	int particleCell = particleArrayIndices[particleNum];
+
   // - Identify which cells may contain neighbors. This isn't always 8.
   // - For each cell, read the start/end indices in the boid pointer array.
   // - Access each boid in the cell and compute velocity change from
