@@ -301,10 +301,9 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
 	glm::vec3 newVel = computeVelocityChange(N, index, pos, vel1);
 	
 	// Clamp the speed
-	newVel[0] = glm::clamp(newVel[0], minVel, maxVel);
-	newVel[1] = glm::clamp(newVel[1], minVel, maxVel);
-	newVel[2] = glm::clamp(newVel[2], minVel, maxVel);
-	//newvel = glm::clamp(newvel, glm::vec3(minVel, minVel, minVel), glm::vec3(maxVel, maxVel, maxVel));
+	newVel.x = glm::clamp(newVel.x, minVel, maxVel);
+	newVel.y = glm::clamp(newVel.y, minVel, maxVel);
+	newVel.z = glm::clamp(newVel.z, minVel, maxVel);
 
 	// Record the new velocity into vel2. Question: why NOT vel1? Next result depends on prev vels 
 	vel2[index] = newVel;
@@ -532,12 +531,21 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 				++cnt3;
 			}
 		}
-
-
 	}
 
+	//calculate averaged parameters
+	if (cnt1) centerOfMass = (centerOfMass / (float)cnt1 - pos[myBoidIndex]) * rule1Scale;
+	keepAway = keepAway * rule2Scale;
+	if (cnt3) neighborVels = (neighborVels / (float)cnt3 - vel1[myBoidIndex]) * rule3Scale;
 
-  // - Clamp the speed change before putting the new speed in vel2
+	glm::vec3 newVel = vel1[myBoidIndex] + centerOfMass + keepAway + neighborVels;
+
+	// Clamp the speed change before putting the new speed in vel2
+	newVel.x = glm::clamp(newVel.x, minVel, maxVel);
+	newVel.y = glm::clamp(newVel.y, minVel, maxVel);
+	newVel.z = glm::clamp(newVel.z, minVel, maxVel);
+
+	vel2[myBoidIndex] = newVel;
 }
 
 __global__ void kernUpdateVelNeighborSearchCoherent(
