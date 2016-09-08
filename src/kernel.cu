@@ -459,12 +459,10 @@ __device__ int getNeighbors(glm::vec3 pos, float inverseCellWidth,
 
 				++ neighborCnt;
 			}
-
 		}
-
 	}
 
-  return neighborCnt ;
+	return neighborCnt ;
 }
 
 __global__ void kernUpdateVelNeighborSearchScattered(
@@ -483,8 +481,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 		return;
 	}
 
-
-	 int myBoidIndex = particleArrayIndices[particleNum];
+	int myBoidIndex = particleArrayIndices[particleNum];
 
 	//Get a list of the grid cells that this particle is in
 	//and its closest relevant neighbors
@@ -578,7 +575,6 @@ void Boids::stepSimulationNaive(float dt) {
 
 	kernUpdatePos << <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_pos, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdatePos failed!");
-
 	
 	// TODO-1.2 ping-pong the velocity buffers
 	
@@ -588,18 +584,48 @@ void Boids::stepSimulationNaive(float dt) {
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
-  // TODO-2.1
   // Uniform Grid Neighbor search using Thrust sort.
+
+	dim3 fullBlocksPerGrid = (numObjects + blockSize - 1) / blockSize;
+
   // In Parallel:
   // - label each particle with its array index as well as its grid index.
   //   Use 2x width grids.
+	kernComputeIndices << <fullBlocksPerGrid, blockSize > >>(numObjects, gridSideCount,
+		gridMinimum, gridInverseCellWidth, dev_pos, dev_particleArrayIndices, dev_particleGridIndices); 
+	checkCUDAErrorWithLine("kernComputeIndices failed!");
+
   // - Unstable key sort using Thrust. A stable sort isn't necessary, but you
   //   are welcome to do a performance comparison.
+	dev_thrust_particleGridIndices = thrust::device_ptr<int>(dev_particleGridIndices);
+	dev_thrust_particleArrayIndices = thrust::device_ptr<int>(dev_particleArrayIndices);
+
+	thrust::sort_by_key(dev_thrust_particleGridIndices, dev_thrust_particleGridIndices + numObjects, 
+						dev_thrust_particleArrayIndices);
+
   // - Naively unroll the loop for finding the start and end indices of each
   //   cell's data pointers in the array of boid indices
+	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize > >> (numObjects, dev_particleGridIndices,
+														dev_gridCellStartIndices, dev_gridCellEndIndices);
+	checkCUDAErrorWithLine("kernIdentifyCellStartEnd failed!");
+
   // - Perform velocity updates using neighbor search
+	kernUpdateVelNeighborSearchScattered << <fullBlocksPerGrid, blockSize > >> (
+		numObjects, gridSideCount, gridMinimum,
+		gridInverseCellWidth, gridCellWidth,
+		dev_gridCellStartIndices, dev_gridCellEndIndices,
+		dev_particleArrayIndices,
+		dev_pos, dev_vel1, dev_vel2)
+	checkCUDAErrorWithLine("kernUpdateVelNeighborSearchScattered failed!");
+
   // - Update positions
+	kernUpdatePos << <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_pos, dev_vel2);
+	checkCUDAErrorWithLine("kernUpdatePos failed!");
+
   // - Ping-pong buffers as needed
+	glm::vec3 *tmp = dev_vel1;
+	dev_vel1 = dev_vel2;
+	dev_vel2 = tmp;
 }
 
 void Boids::stepSimulationCoherentGrid(float dt) {
@@ -626,6 +652,10 @@ void Boids::endSimulation() {
   cudaFree(dev_pos);
 
   // TODO-2.1 TODO-2.3 - Free any additional buffers here.
+  cudaFree(dev_particleArrayIndices);
+  cudaFree(dev_particleGridIndices);
+  cudaFree(dev_gridCellStartIndices);
+  cudaFree(dev_gridCellEndIndices);
 }
 
 void Boids::unitTest() {
