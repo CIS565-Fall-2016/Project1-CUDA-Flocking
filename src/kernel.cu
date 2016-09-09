@@ -160,6 +160,10 @@ void Boids::initSimulation(int N) {
 
   // LOOK-2.1 computing grid params
   gridCellWidth = 2.0f * std::max(std::max(rule1Distance, rule2Distance), rule3Distance);
+
+  // limit cell width to prevent crashing
+  //gridCellWidth = gridCellWidth < 5.0 ? 5.0 : gridCellWidth;
+
   int halfSideCount = (int)(scene_scale / gridCellWidth) + 1;
   gridSideCount = 2 * halfSideCount;
   gridCellCount = gridSideCount * gridSideCount * gridSideCount;

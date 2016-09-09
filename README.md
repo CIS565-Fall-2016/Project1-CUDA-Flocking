@@ -76,6 +76,24 @@ Boids simulation running 3 implementation versions.
     Here we can clearly see the advantage of using grids.
     Especially the coherent solution which reduces index lookup.
 
+    * Increasing the number of points clearly impacts performance
+      as seen in the difference between the 5000 point benchmark
+      and this last benchmark.  This is obviously due to the 
+      increased number of points to search for.  The naive method
+      takes a bigger hit since the search involves all points 
+      whereas the sparse and coherent grid solutions are less
+      impacted but still impacted due the increased concentration
+      of points in cells.
+      Here are the results for 100,000 points
+
+    * Now there are cases where the sparse and coherent grid fail.
+      This is when the search radius becomes so small that the 
+      number of cells exceeds the graphics card memory and will
+      crash.  The solution to this would be to limit the size in 
+      order to prevent such a scenario.  This is commented out
+      in the final code release.
+      So provided we clamp the minimum cell size, it should be
+      safe to use the sparse and coherent grid.
 
 Here are a few performance analysis with NSIGHT:
     * Bruteforce:
