@@ -14,13 +14,15 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 0
-#define COHERENT_GRID 0
+#define UNIFORM_GRID 1
+#define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
 const int N_FOR_VIS = 5000;
 const float DT = 0.2f;
 
+static int TOTAL_CYCLES = 0;
+static double TOTAL_MS = 0.0;
 /**
 * C main function.
 */
@@ -235,7 +237,31 @@ void initShaders(GLuint * program) {
         frame = 0;
       }
 
-      runCUDA();
+#if VISUALIZE
+    runCUDA();
+#else
+	// run once per second
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+    cudaEventRecord(start);
+          
+    runCUDA();
+          
+    cudaEventRecord(stop);
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    TOTAL_MS += milliseconds;
+    TOTAL_CYCLES++;
+          
+    if (glfwGetTime() - timebase < (1.0 / fps))
+    {
+        printf("\nAverage CUDA frame time %f ms", TOTAL_MS / TOTAL_CYCLES);
+        TOTAL_MS = 0.0;
+        TOTAL_CYCLES = 0;
+    }
+#endif
 
       std::ostringstream ss;
       ss << "[";
@@ -251,7 +277,12 @@ void initShaders(GLuint * program) {
       glBindVertexArray(boidVAO);
       glPointSize(pointSize);
       glDrawElements(GL_POINTS, N_FOR_VIS + 1, GL_UNSIGNED_INT, 0);
-      glPointSize(1.0f);
+      
+	  // for analyzing the first point
+	  //glPointSize(10);
+	  //glDrawElements(GL_POINTS, 1, GL_UNSIGNED_INT, 0);
+	  
+	  glPointSize(1.0f);
 
       glUseProgram(0);
       glBindVertexArray(0);
@@ -282,8 +313,8 @@ void initShaders(GLuint * program) {
   void mousePositionCallback(GLFWwindow* window, double xpos, double ypos) {
     if (leftMousePressed) {
       // compute new camera parameters
-      phi += (xpos - lastX) / width;
-      theta -= (ypos - lastY) / height;
+      phi += 3.0*(xpos - lastX) / width;
+      theta -= 3.0*(ypos - lastY) / height;
       theta = std::fmax(0.01f, std::fmin(theta, 3.14f));
       updateCamera();
     }
