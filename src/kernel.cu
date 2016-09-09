@@ -271,6 +271,7 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
     {
         delta_vel += rule1Scale * ((rule1_neighbor_pos_sum / rule1_neighbor_count) - pos[iSelf]);
     }
+
     // Rule 2: boids try to stay a distance d away from each other
     delta_vel += rule2Scale *  rule2_total_offset;
     
@@ -284,7 +285,7 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 }
 
 /**
-* TODO-1.2 implement basic flocking
+* DONE-1.2 implement basic flocking
 * For each of the `N` bodies, update its position based on its current velocity.
 */
 __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
@@ -414,12 +415,12 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 */
 void Boids::stepSimulationNaive(float dt) {
   
-    // TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
+    // DONE-1.2 - use the kernels you wrote to step the simulation forward in time.
     dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
     kernUpdateVelocityBruteForce<<<fullBlocksPerGrid, blockSize >>>(numObjects, dev_pos, dev_vel1, dev_vel2); 
     kernUpdatePos <<<fullBlocksPerGrid, blockSize >>>(numObjects, dt, dev_pos, dev_vel1);
 
-    // TODO-1.2 ping-pong the velocity buffers
+    // DONE-1.2 ping-pong the velocity buffers
     // swap pointers so current velocity become new velocity
     std::swap(dev_vel1, dev_vel2);
 }
