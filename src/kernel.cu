@@ -235,50 +235,32 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
   glm::vec3 sumPosition(0.0f, 0.0f, 0.0f);
   glm::vec3 sumStayAway(0.0f, 0.0f, 0.0f);
   glm::vec3 sumVelocity(0.0f, 0.0f, 0.0f);
-  int nearbyCount = 0;
-  // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+  float nearbyCount = 0.0;
   for (int i = 0; i < N; i++) {
     if (i == iSelf) {
       continue;
     }
-    if (glm::length(ownPosition - pos[i]) > rule1Distance) {
-      continue;
-    }
-    nearbyCount++;
-    sumPosition += pos[i];
+	float distance = glm::length(ownPosition - pos[i]);
+	// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+	if (distance < rule1Distance) {
+		nearbyCount += 1.0;
+		sumPosition += pos[i];
+	}
+	// Rule 2: boids try to stay a distance d away from each other
+	if (distance < rule2Distance) {
+		sumStayAway += ownPosition - pos[i];
+	}
+	// Rule 3: boids try to match the speed of surrounding boids
+	if (distance < rule3Distance) {
+		sumVelocity += vel[i];
+	}
   }
-  if (nearbyCount == 0) {
-    nearbyCount = 1;
-  }
-  velocityChange += sumPosition * (rule1Scale / nearbyCount);
-  
-  // Rule 2: boids try to stay a distance d away from each other
-  for (int i = 0; i < N; i++) {
-    if (i == iSelf) {
-      continue;
-    }
-    if (glm::length(ownPosition - pos[i]) > rule2Distance) {
-      continue;
-    }
-    sumStayAway += pos[i] - ownPosition;
+  if (nearbyCount > 0) {
+	  sumPosition = sumPosition / nearbyCount;
+	  velocityChange += (sumPosition - ownPosition) * rule1Scale;
   }
   velocityChange += sumStayAway * rule2Scale;
-  // Rule 3: boids try to match the speed of surrounding boids
-  nearbyCount = 0;
-  for (int i = 0; i < N; i++) {
-    if (i == iSelf) {
-      continue;
-    }
-    if (glm::length(ownPosition - pos[i]) > rule3Distance) {
-      continue;
-    }
-    nearbyCount++;
-    sumVelocity += vel[i];
-  }
-  if (nearbyCount == 0) {
-    nearbyCount = 1;
-  }
-  velocityChange += sumVelocity * (rule3Scale / nearbyCount);
+  velocityChange += sumVelocity * rule3Scale;
   return velocityChange;
 }
 
@@ -297,7 +279,7 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
   // Clamp the speed
   float speed = glm::length(newVelocity);
   if (speed > maxSpeed) {
-    newVelocity = newVelocity / speed;
+    newVelocity = (newVelocity / speed) * maxSpeed;
   }
   // Record the new velocity into vel2. Question: why NOT vel1?
   vel2[index] = newVelocity;
