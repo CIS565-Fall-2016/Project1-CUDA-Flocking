@@ -584,6 +584,7 @@ void Boids::stepSimulationNaive(float dt) {
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
+
   // Uniform Grid Neighbor search using Thrust sort.
 
 	dim3 fullBlocksPerGrid = (numObjects + blockSize - 1) / blockSize;
@@ -591,7 +592,7 @@ void Boids::stepSimulationScatteredGrid(float dt) {
   // In Parallel:
   // - label each particle with its array index as well as its grid index.
   //   Use 2x width grids.
-	kernComputeIndices << <fullBlocksPerGrid, blockSize > >>(numObjects, gridSideCount,
+	kernComputeIndices << <fullBlocksPerGrid, blockSize>> >(numObjects, gridSideCount,
 		gridMinimum, gridInverseCellWidth, dev_pos, dev_particleArrayIndices, dev_particleGridIndices); 
 	checkCUDAErrorWithLine("kernComputeIndices failed!");
 
@@ -605,21 +606,21 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 
   // - Naively unroll the loop for finding the start and end indices of each
   //   cell's data pointers in the array of boid indices
-	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize > >> (numObjects, dev_particleGridIndices,
+	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize>> > (numObjects, dev_particleGridIndices,
 														dev_gridCellStartIndices, dev_gridCellEndIndices);
 	checkCUDAErrorWithLine("kernIdentifyCellStartEnd failed!");
 
   // - Perform velocity updates using neighbor search
-	kernUpdateVelNeighborSearchScattered << <fullBlocksPerGrid, blockSize > >> (
+	kernUpdateVelNeighborSearchScattered << <fullBlocksPerGrid, blockSize >> > (
 		numObjects, gridSideCount, gridMinimum,
 		gridInverseCellWidth, gridCellWidth,
 		dev_gridCellStartIndices, dev_gridCellEndIndices,
 		dev_particleArrayIndices,
-		dev_pos, dev_vel1, dev_vel2)
+		dev_pos, dev_vel1, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdateVelNeighborSearchScattered failed!");
 
   // - Update positions
-	kernUpdatePos << <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_pos, dev_vel2);
+	kernUpdatePos << <fullBlocksPerGrid, blockSize>> >(numObjects, dt, dev_pos, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdatePos failed!");
 
   // - Ping-pong buffers as needed
