@@ -169,6 +169,18 @@ void Boids::initSimulation(int N) {
   gridMinimum.z -= halfGridWidth;
 
   // TODO-2.1 TODO-2.3 - Allocate additional buffers here.
+  cudaMalloc((void**)&dev_particleArrayIndices, sizeof(int) * numObjects);
+  checkCUDAErrorWithLine("cudaMalloc failed!");
+  cudaMalloc((void**)&dev_particleGridIndices, sizeof(int) * numObjects);
+  checkCUDAErrorWithLine("cudaMalloc failed!");
+  cudaMalloc((void**)&dev_gridCellStartIndices, sizeof(int) * gridCellCount);
+  checkCUDAErrorWithLine("cudaMalloc failed!");
+  cudaMalloc((void**)&dev_gridCellEndIndices, sizeof(int) * gridCellCount);
+  checkCUDAErrorWithLine("cudaMalloc failed!");
+  
+  dev_thrust_particleArrayIndices = thrust::device_ptr<int>(dev_particleArrayIndices);
+  dev_thrust_particleGridIndices = thrust::device_ptr<int>(dev_particleGridIndices);
+
   cudaThreadSynchronize();
 }
 
@@ -330,6 +342,7 @@ __global__ void kernComputeIndices(int N, int gridResolution,
 	glm::vec3 grid = (pos[index] - gridMin) * inverseCellWidth;
 	indices[index] = index;
 	gridIndices[index] = gridIndex3Dto1D(grid.x, grid.y, grid.z, gridResolution);
+	
 }
 
 // LOOK-2.1 Consider how this could be useful for indicating that a cell
@@ -386,20 +399,26 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	if (index >= N) {
 		return;
 	}
-	int thisIndex = particleArrayIndices[index];
-	glm::vec3 thisPos = pos[thisIndex];
-	glm::vec3 gridPos = (pos[thisIndex] - gridMin) * inverseCellWidth;
-	glm::vec3 newVel = vel1[thisIndex];
-	int centerGridNumber = gridIndex3Dto1D(gridPos.x, gridPos.y, gridPos.z, gridResolution);
-	for (int z = -1; z < 1; z++) {
-		for (int y = -1; y < 1; y++) {
-			for (int x = -1; x < 1; x++) {
-				int neighbor = centerGridNumber + x + y * gridResolution + z * gridResolution * gridResolution;
-				if (neighbor == centerGridNumber || neighbor < 0 || neighbor >= gridResolution * gridResolution * gridResolution) {
+	glm::vec3 thisPos = pos[index];
+	glm::ivec3 gridPos = (pos[index] - gridMin) * inverseCellWidth;
+	glm::vec3 newVel = vel1[index];
+	glm::ivec3 neighbor;
+	
+
+	for (int z = -1; z <= 1; z++) {
+		for (int y = -1; y <= 1; y++) {
+			for (int x = -1; x <= 1; x++) {
+				glm::ivec3 offset(x, y, z);
+				neighbor = gridPos + offset;
+				//printf("gridpos: %d %d %d offset: %d %d %d neighbor: %d %d %d\n", 
+					//gridPos.x, gridPos.y, gridPos.z, offset.x, offset.y, offset.z, neighbor.x, neighbor.y, neighbor.z);
+				if (neighbor.x < 0 || neighbor.y < 0 || neighbor.z < 0
+					|| neighbor.x >= gridResolution || neighbor.y >= gridResolution || neighbor.z >= gridResolution) {
 					continue;
 				}
-				start = gridCellStartIndices[neighbor];
-				end = gridCellEndIndices[neighbor];
+				int neighborNumber = gridIndex3Dto1D(neighbor.x, neighbor.y, neighbor.z, gridResolution);
+				start = gridCellStartIndices[neighborNumber];
+				end = gridCellEndIndices[neighborNumber];
 				for (int i = start; i <= end; i++) {
 					boidIndex = particleArrayIndices[i];
 
@@ -424,8 +443,11 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 		newVel += cohesion * rule3Scale;
 	}
 	newVel += separate * rule2Scale;
-	newVel = glm::normalize(newVel) * maxSpeed;
-	vel2[thisIndex] = newVel;
+	if (glm::length(newVel) > maxSpeed) {
+		newVel = glm::normalize(newVel) * maxSpeed;
+	}
+	//newVel = glm::vec3(1, 1, 1);
+	vel2[index] = newVel;
 
 }
 
@@ -481,8 +503,6 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 	kernComputeIndices << <fullBlocksPerGrid, blockSize >> >(numObjects, gridSideCount, gridMinimum, gridInverseCellWidth, 
 		dev_pos, dev_particleArrayIndices, dev_particleGridIndices);
 
-	dev_thrust_particleArrayIndices = thrust::device_ptr<int>(dev_particleArrayIndices);
-	dev_thrust_particleGridIndices = thrust::device_ptr<int>(dev_particleGridIndices);
 	thrust::sort_by_key(dev_thrust_particleGridIndices, dev_thrust_particleGridIndices + numObjects, dev_thrust_particleArrayIndices);
 	
 	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize >> >(numObjects, dev_particleGridIndices, dev_gridCellStartIndices, dev_gridCellEndIndices);
@@ -518,6 +538,11 @@ void Boids::endSimulation() {
   cudaFree(dev_vel1);
   cudaFree(dev_vel2);
   cudaFree(dev_pos);
+
+  cudaFree(dev_particleArrayIndices);
+  cudaFree(dev_particleGridIndices);
+  cudaFree(dev_gridCellStartIndices);
+  cudaFree(dev_gridCellEndIndices);
 
   // TODO-2.1 TODO-2.3 - Free any additional buffers here.
 }
