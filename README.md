@@ -24,6 +24,16 @@ Boids simulation running 3 implementation versions.
   in order to find their corresponding velocity and positions, we
   sort the position and velocity attributes directly.
 
+* Naive method:
+![default5000bruteforce](./images/default_5000_bruteforce.png)
+
+* Sparse Grid method:
+![default100000sparsegrid](images/default_100000_sparsegrid.png)
+
+* Coherent Grid method:
+![default100000coherentgrid](images/default_100000_coherentgrid.png)
+
+
 * Performance
   The naive solution seems fast enough with 5000 points running on
   a GTX980M but increasing this to 10000 and we see a drop by half
@@ -66,11 +76,6 @@ Boids simulation running 3 implementation versions.
     Here we can clearly see the advantage of using grids.
     Especially the coherent solution which reduces index lookup.
 
-![default5000bruteforce](./images/default_5000_bruteforce.png)
-
-![default100000sparsegrid](images/default_100000_sparsegrid.png)
-
-![default100000coherentgrid](images/default_100000_coherentgrid.png)
 
 Here are a few performance analysis with NSIGHT:
     * Bruteforce:
