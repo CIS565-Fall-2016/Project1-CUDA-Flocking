@@ -232,24 +232,55 @@ void Boids::copyBoidsToVBO(float *vbodptr_positions, float *vbodptr_velocities) 
 __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *pos, const glm::vec3 *vel) {
     glm::vec3 delta_vel(0.0f);
 
-    //thrust::device_vector<int> neighbor_indices;
-    // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
-    glm::vec3 neighbor_center_of_mass(0.0f);
+    glm::vec3 rule1_neighbor_pos_sum(0.0f);
+    float rule1_neighbor_count = 0.0f;
+    glm::vec3 rule2_total_offset(0.0f);
+    glm::vec3 rule3_neighbor_vel_sum(0.0f);
+    float rule3_neighbor_count = 0.0f;
 
-    int neighbor_count = 0;
+    float current_distance;
+    glm::vec3 current_pos_offset;
     for (int i = 0; i < N; i++)
     {
         if (i == iSelf){ continue; }
 
-        if (glm::distance(pos[iSelf], pos[i]) < rule1Distance)
-        {
+        current_pos_offset = pos[i] - pos[iSelf];
+        current_distance = glm::length(current_pos_offset);
 
+        // Get neighbor position sum and neighbor count for rule1
+        if (current_distance < rule1Distance)
+        {
+            rule1_neighbor_pos_sum += pos[i];
+            rule1_neighbor_count += 1.0f;
+        }
+        // Calculate offset for rule 2
+        if (current_distance < rule2Distance)
+        {
+            rule2_total_offset -= current_pos_offset;
+        }
+        // Get velocity sum and neighbor count for rule 3
+        if (current_distance < rule3Distance)
+        {
+            rule3_neighbor_vel_sum += vel[i];
+            rule3_neighbor_count += 1.0f;
         }
     }
-    // Rule 2: boids try to stay a distance d away from each other
 
+    // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
+    if (rule1_neighbor_count > 0.0f)
+    {
+        delta_vel += rule1Scale * ((rule1_neighbor_pos_sum / rule1_neighbor_count) - pos[iSelf]);
+    }
+    // Rule 2: boids try to stay a distance d away from each other
+    delta_vel += rule2Scale *  rule2_total_offset;
+    
     // Rule 3: boids try to match the speed of surrounding boids
-    return glm::vec3(0.0f, 0.0f, 0.0f);
+    if (rule3_neighbor_count > 0.0f)
+    {
+        delta_vel += rule3Scale * ((rule3_neighbor_vel_sum / rule3_neighbor_count) - vel[iSelf]);
+    }
+
+    return delta_vel;
 }
 
 /**
@@ -268,17 +299,17 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
     }
 
     // Compute a new velocity based on pos and vel1
-    glm::vec3 delta_vel = computeVelocityChange(N, index, pos, vel1);
-    glm::vec3 new_vel = vel1[index] + delta_vel;
+    glm::vec3 new_vel = vel1[index] + computeVelocityChange(N, index, pos, vel1);
 
     // Clamp the speed
-    if (glm::length(new_vel) > maxSpeed)
+    auto speed = glm::length(new_vel);
+    if (speed > maxSpeed)
     {
-        new_vel = glm::normalize(new_vel) * maxSpeed;
+        new_vel = new_vel * (maxSpeed / speed);
     }
 
     // Record the new velocity into vel2. Question: why NOT vel1? 
-    //   Ans: neighbors need vel1 to update their velocity
+    //   Ans: neighbors need vel from last frame to update their velocity
     vel2[index] = new_vel;
 }
 
@@ -384,11 +415,13 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 void Boids::stepSimulationNaive(float dt) {
   
     // TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
-    
+    dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
+    kernUpdateVelocityBruteForce<<<fullBlocksPerGrid, blockSize >>>(numObjects, dev_pos, dev_vel1, dev_vel2); 
+    kernUpdatePos <<<fullBlocksPerGrid, blockSize >>>(numObjects, dt, dev_pos, dev_vel1);
 
-
-
-  // TODO-1.2 ping-pong the velocity buffers
+    // TODO-1.2 ping-pong the velocity buffers
+    // swap pointers so current velocity become new velocity
+    std::swap(dev_vel1, dev_vel2);
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
