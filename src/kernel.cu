@@ -250,7 +250,7 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 		vectorBetweenTwoBoids = pos[i] - pos[iSelf];
 		distanceBetweenTwoBoids = glm::length(pos[i] - pos[iSelf]);
 		if (distanceBetweenTwoBoids < rule1Distance) {
-			centerOfMass += vectorBetweenTwoBoids;
+			centerOfMass += pos[i];
 			neighborOfCountRule1 += 1.f;
 		}
 		if (distanceBetweenTwoBoids < rule2Distance) {
@@ -268,17 +268,13 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 		centerOfMass = centerOfMass / neighborOfCountRule1;
 		finalVel += (centerOfMass - pos[iSelf]) * rule1Scale;
 	}
-	else {
-		finalVel += 0.f;
-	}
+	
 	// Rule 3
 	if (neighborofCountRule3 > 0) {
 		alignment = alignment / neighborofCountRule3;
 		finalVel += alignment * rule3Scale;
 	}
-	else {
-		finalVel += 0.f;
-	}
+	
 	// Rule 2
 	finalVel += seperation * rule2Scale;
     return finalVel;
