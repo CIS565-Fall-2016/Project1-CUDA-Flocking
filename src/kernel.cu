@@ -352,13 +352,6 @@ __device__ int gridIndex3Dto1D(int x, int y, int z, int gridResolution) {
   return x + y * gridResolution + z * gridResolution * gridResolution;
 }
 
-__device__ int vec3ToGridIndex(glm::vec3 pos, float inverseCellWidth, int gridResolution)
-{
-	return  gridIndex3Dto1D(
-		(int)(pos.x * inverseCellWidth),
-		(int)(pos.y * inverseCellWidth),
-		(int)(pos.z * inverseCellWidth), gridResolution);
-}
 
 __global__ void kernComputeIndices(int N, int gridResolution,
   glm::vec3 gridMin, float inverseCellWidth,
@@ -420,51 +413,60 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
 	}
 }
 
+
+__device__ glm::vec3 posToFloat3DIndex (glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth)
+{
+	//to zero-index everything, must subtract off minimum value
+	//NOTE these are still floats!!
+	return  glm::vec3(((pos.x - gridMin.x) * inverseCellWidth),
+                      ((pos.y - gridMin.y) * inverseCellWidth),
+                      ((pos.z - gridMin.z) * inverseCellWidth));
+} 
+
+
 __device__ int getNeighbors(glm::vec3 pos, float inverseCellWidth, 
-	float cellWidth, int gridResolution, int * neighbors)
+	float cellWidth, int gridResolution, glm::vec3 gridMin, int * neighbors)
 {
 
 	float halfWidth = cellWidth * 0.5;
-	glm::vec3 myGridPos = glm::vec3((int)(pos.x * inverseCellWidth),
-                                    (int)(pos.y * inverseCellWidth),
-                                    (int)(pos.z * inverseCellWidth));
+	glm::vec3 myFloatGridPos =  posToFloat3DIndex (pos, gridMin, inverseCellWidth);
 
 	glm::vec3 gridStart = glm::vec3( 0, 0, 0 );
 	glm::vec3 gridEnd = glm::vec3( 0, 0, 0 );
 
 	//if adding a halfwidth results in the same tile, then they are in 
-	if (((pos.x + halfWidth) * inverseCellWidth) == myGridPos.x)
+	if ((int)((pos.x - gridMin.x + halfWidth) * inverseCellWidth) == (int) myGridPos.x)
 		gridStart.x = -1 ;
 	else 
 		gridEnd.x = 1 ;
 	
-	if ((int)((pos.y + halfWidth) * inverseCellWidth) == myGridPos.y)
+	if ((int)((pos.y - gridMin.y + halfWidth) * inverseCellWidth) == (int) myGridPos.y)
 		gridStart.y = -1 ;
 	else 
 		gridEnd.y = 1 ;
 
-	if ((int)((pos.z + halfWidth) * inverseCellWidth) == myGridPos.z)
+	if ((int)((pos.z - gridMin.z + halfWidth) * inverseCellWidth) == (int) myGridPos.z)
 		gridStart.z = -1 ;
 	else 
 		gridEnd.z = 1 ;
 
 	//our cell is always a "neighbor"
-	neighbors[0] = gridIndex3Dto1D(myGridPos.x, myGridPos.y, myGridPos.z, gridResolution);
+	neighbors[0] = gridIndex3Dto1D((int) myGridPos.x, (int) myGridPos.y, (int) myGridPos.z, gridResolution);
 	
 	//calculate which cells are adjacent to me and put them in the buffer
 	int neighborCnt = 1; //self index is already in buffer, so start at 1
 
-	for (int i = myGridPos.x + gridStart.x; i < myGridPos.x + gridEnd.x; ++i)
+	for (int i = (int) myGridPos.x + (int) gridStart.x; i < (int) myGridPos.x + (int) gridEnd.x; ++i)
 	{
 	if (i < 0 || i >= gridResolution)
 		continue;
 
-		for (int j = myGridPos.y + gridStart.y; j < myGridPos.y + gridEnd.y; ++j)
+		for (int j = (int) myGridPos.y + (int) gridStart.y; j < (int) myGridPos.y + (int) gridEnd.y; ++j)
 		{
 			if (j < 0 || j >= gridResolution)
 			continue;
 
-			for (int k = myGridPos.z + gridStart.z; k < myGridPos.z + gridEnd.z; ++k)
+			for (int k = (int) myGridPos.z + (int) gridStart.z; k < (int) myGridPos.z + (int) gridEnd.z; ++k)
 			{
 				if (k < 0 || k >= gridResolution)
 					continue;
@@ -501,7 +503,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	//and its closest relevant neighbors
 	int neighbors[9];
 	int neighborCnt = getNeighbors(pos[myBoidIndex],
-							inverseCellWidth, cellWidth, gridResolution, neighbors);
+						inverseCellWidth, cellWidth, gridResolution, gridMin, neighbors);
 
 	glm::vec3 centerOfMass = glm::vec3(0.0f, 0.0f, 0.0f); //rule 1
 	glm::vec3 keepAway = glm::vec3(0.0f, 0.0f, 0.0f); //rule 2
