@@ -254,9 +254,8 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 
 	if (numOfNeighbors1 > 0) {
 		centerOfMass /= numOfNeighbors1 + 0.f;
+		vDelta += (centerOfMass - pos[iSelf]) * rule1Scale;
 	}
-
-	vDelta += (centerOfMass - pos[iSelf]) * rule1Scale;
 #endif
 
 #ifndef RULE2
@@ -296,9 +295,8 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 
 	if (numOfNeighbor3 > 0) {
 		vAverage /= numOfNeighbor3 + 0.f;
+		vDelta += vAverage * rule3Scale;
 	}
-
-	vDelta += vAverage * rule3Scale;
 #endif
 
   return vDelta;
