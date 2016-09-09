@@ -39,19 +39,19 @@ Boids simulation running 3 implementation versions.
   a GTX980M but increasing this to 10000 and we see a drop by half
   the framerate and exponentially slower the higher the number.
 
-  * here are a few CUDA compute average results on 5000 points:
+  * Here have a few CUDA compute average results on 5000 points:
     * Naive:
-        Average CUDA frame time 3.584352 ms
-        Average CUDA frame time 3.646981 ms
-        Average CUDA frame time 3.643696 ms
+        - Average CUDA frame time 3.584352 ms
+        - Average CUDA frame time 3.646981 ms
+        - Average CUDA frame time 3.643696 ms
     * Saprse Grid:
-        Average CUDA frame time 1.676956 ms
-        Average CUDA frame time 2.982781 ms
-        Average CUDA frame time 3.228212 ms
+        - Average CUDA frame time 1.676956 ms
+        - Average CUDA frame time 2.982781 ms
+        - Average CUDA frame time 3.228212 ms
     * Coherent Grid:
-        Average CUDA frame time 1.936160 ms
-        Average CUDA frame time 1.930368 ms
-        Average CUDA frame time 2.040167 ms
+        - Average CUDA frame time 1.936160 ms
+        - Average CUDA frame time 1.930368 ms
+        - Average CUDA frame time 2.040167 ms
     
     The performance is a bit faster with the sparse and coherent
     solutions and it looks like the coherent solution is a litte
@@ -61,17 +61,17 @@ Boids simulation running 3 implementation versions.
     * Pushing the limit further reveals more.  Here are the
       results when simulating 100,000 points:
     * Naive:
-        Average CUDA frame time 2190.682983 ms
-        Average CUDA frame time 2174.661621 ms
-        Average CUDA frame time 2174.265381 ms
+        - Average CUDA frame time 2190.682983 ms
+        - Average CUDA frame time 2174.661621 ms
+        - Average CUDA frame time 2174.265381 ms
     * Saprse Grid:
-        Average CUDA frame time 16.067091 ms
-        Average CUDA frame time 22.827206 ms
-        Average CUDA frame time 27.569127 ms
+        - Average CUDA frame time 16.067091 ms
+        - Average CUDA frame time 22.827206 ms
+        - Average CUDA frame time 27.569127 ms
     * Coherent Grid:
-        Average CUDA frame time 18.013756 ms
-        Average CUDA frame time 21.239281 ms
-        Average CUDA frame time 21.476675 ms
+        - Average CUDA frame time 18.013756 ms
+        - Average CUDA frame time 21.239281 ms
+        - Average CUDA frame time 21.476675 ms
 
     Here we can clearly see the advantage of using grids.
     Especially the coherent solution which reduces index lookup.
