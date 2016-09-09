@@ -34,7 +34,7 @@ Boids simulation running 3 implementation versions.
 ![default100000coherentgrid](images/default_100000_coherentgrid.png)
 
 
-* Performance
+* Performance:
   The naive solution seems fast enough with 5000 points running on
   a GTX980M but increasing this to 10000 and we see a drop by half
   the framerate and exponentially slower the higher the number.
