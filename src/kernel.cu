@@ -69,7 +69,6 @@ dim3 threadsPerBlock(blockSize);
 glm::vec3 *dev_pos;
 glm::vec3 *dev_vel1;
 glm::vec3 *dev_vel2;
-bool pp = false;
 
 // LOOK-2.1 - these are NOT allocated for you. You'll have to set up the thrust
 // pointers on your own too.
@@ -241,14 +240,13 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 	glm::vec3 com(0.0f);
 
 	float n_count1 = 0.0f;
-	float n_count3 = 0.0f;
 
 	for (int i = 0; i < N; ++i) {
 		if (i == iSelf)
 			continue;
 
 		glm::vec3 b = pos[i];
-
+			
 		float l = glm::length(b - ipos);
 
 		// Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
@@ -267,7 +265,6 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 
 		if (l < rule3Distance) {
 			v3 += vel[i];
-			n_count3 += 1.0f;
 		}
 	}
 
@@ -277,14 +274,17 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 	}
 
 	v2 *= rule2Scale;
-	
-	if (n_count3 > 0.0f) {
-		v3 /= n_count3;
-		v3 = (v3 - vel[iSelf]) * rule3Scale;
-	}
 
-	printf("V1: %f, V2: %f, V3: %f", v1.x, v2.x, v3.x);
-	return v1 + v2 + v3;// +v3;
+	v3 *= rule3Scale;
+
+	//printf("n_count 1: %f N_count 3: %f", n_count1, n_count3);
+	//printf("V1: %f, %f, %f\nV2: %f, %f, %f\nV3: %f, %f, %f\n", v1.x, v1.y, v1.z,
+	//	v2.x, v2.y, v2.z, v3.x, v3.y, v3.z);
+	
+	//printf("Pos: %f, %f, %f Vel: %f, %f, %f\n", ipos.x,
+	//	ipos.y, ipos.z, vel[iSelf].x, vel[iSelf].y, vel[iSelf].z);
+	
+	return v1 + v2 + v3;
 }
 
 /**
@@ -300,11 +300,11 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
 		return;
 
 	glm::vec3 n_vel = computeVelocityChange(N, index, pos, vel1);
-
+	n_vel += vel2[index];
     // Clamp the speed
 	float speed = glm::length(n_vel);
 	if (speed > maxSpeed) {
-		printf("Maxspeed!");
+		//printf("Maxspeed!");
 
 		// I think this will work...
 		n_vel = glm::normalize(n_vel) * maxSpeed;
@@ -416,16 +416,15 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 */
 void Boids::stepSimulationNaive(float dt) {
 	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
-
-	// Ping-pong buffer
-	glm::vec3 *r = (pp) ? dev_vel1 : dev_vel2;
-	glm::vec3 *w = (pp) ? dev_vel2 : dev_vel1;
-	pp = !pp;
-
+	
 	kernUpdateVelocityBruteForce <<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dev_pos,
-		r, w);
+		dev_vel1, dev_vel2);
 
-	kernUpdatePos<<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dt, dev_pos, w);
+	kernUpdatePos<<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dt, dev_pos, dev_vel2);
+
+	glm::vec3 *swap = dev_vel1;
+	dev_vel1 = dev_vel2;
+	dev_vel2 = swap;
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
