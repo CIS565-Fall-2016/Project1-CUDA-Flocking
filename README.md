@@ -1,10 +1,31 @@
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture,
 Project 1 - Flocking**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Kaixiang Miao
+* Tested on: Windows 7, i7-3630QM @ 2.40GHz 8GB, GTX 660M 2GB (Lenovo Y580 laptop, personal computer)
 
-### (TODO: Your README)
+#### Screenshot
 
-Include screenshots, analysis, etc. (Remember, this is public, so don't put
-anything here that you don't want to share with the world.)
+___
+
+
+![](./CoherentBoidsFlocking.gif)
+
+The `.gif` above shows my work of **Coherent Boids Flocking**. Parameters are listed as below:
+
+* *N\_FOR_VIS* : `10000`
+* *DT* : `0.2f` 
+* *blockSize* : `128`
+* *rule1Dsitance* : `5.0f`
+* *rule2Distance* : `3.0f`
+* *rule3Distance* : `5.0f`
+* *rule1Scale* : `0.01f`
+* *rule2Scale* : `0.1f`
+* *rule3Scale* : `0.1f`
+* *maxSpeed* : `1.0f`
+* *scene_scale* : `100.0f`
+
+#### Performance Analysis
+
+___
+
