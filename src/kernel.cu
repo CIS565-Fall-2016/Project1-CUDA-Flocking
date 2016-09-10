@@ -271,17 +271,20 @@ __device__ glm::vec3 computeVelocityChange(int N, int iSelf, const glm::vec3 *po
 		}
 	}
 
-	if (n_count1 > 0.0f)
+	if (n_count1 > 0.0f) {
 		com /= n_count1;
-	v1 = (com - ipos) * rule1Scale;
+		v1 = (com - ipos) * rule1Scale;
+	}
 
 	v2 *= rule2Scale;
-
-	v3 /= n_count3;
-	v3 = (v3 - vel[iSelf]) * rule3Scale;
+	
+	if (n_count3 > 0.0f) {
+		v3 /= n_count3;
+		v3 = (v3 - vel[iSelf]) * rule3Scale;
+	}
 
 	printf("V1: %f, V2: %f, V3: %f", v1.x, v2.x, v3.x);
-	return v1 + v2 + v3;
+	return v1 + v2 + v3;// +v3;
 }
 
 /**
@@ -301,6 +304,7 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
     // Clamp the speed
 	float speed = glm::length(n_vel);
 	if (speed > maxSpeed) {
+		printf("Maxspeed!");
 
 		// I think this will work...
 		n_vel = glm::normalize(n_vel) * maxSpeed;
@@ -414,14 +418,14 @@ void Boids::stepSimulationNaive(float dt) {
 	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
 
 	// Ping-pong buffer
-	glm::vec3 *vel1 = (pp) ? dev_vel1 : dev_vel2;
-	glm::vec3 *vel2 = (pp) ? dev_vel2 : dev_vel1;
+	glm::vec3 *r = (pp) ? dev_vel1 : dev_vel2;
+	glm::vec3 *w = (pp) ? dev_vel2 : dev_vel1;
 	pp = !pp;
 
 	kernUpdateVelocityBruteForce <<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dev_pos,
-		vel1, vel2);
+		r, w);
 
-	kernUpdatePos<<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dt, dev_pos, vel1);
+	kernUpdatePos<<< fullBlocksPerGrid, threadsPerBlock >>>(numObjects, dt, dev_pos, w);
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
