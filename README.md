@@ -11,12 +11,12 @@ Performance testing was done by measuring the time taken to run 1000 frames of t
 
 **Number of boids**
 Testing the number of boids was run with a block size of 128.
-![](images/chart1.png)
+![](images/chart1.PNG)
 The time elapsed took longer as the number of boids increased, which was to be expected due to the increased number of comparisons.
 
 **Block size**
 Testing the block size was run with 5000 boids.
-![](images/chart2.png)
+![](images/chart2.PNG)
 Changing the block size caused fluctuations in the performance of all three methods, but did not lead to any significant increases or decreases in their performance. This could be because the increased number of available threads may not have been efficiently utilized to improve the performance. 
 
 **Coherent uniform grid analysis**
