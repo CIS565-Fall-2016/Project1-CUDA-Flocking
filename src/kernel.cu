@@ -369,13 +369,17 @@ __global__ void kernComputeIndices(int N, int gridResolution,
     // - Label each boid with the index of its grid cell.
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (index < N) {
-		glm::vec3 pos = pos[index];
+		glm::vec3 ipos = pos[index];
+		
+		glm::vec3 cell = (ipos - gridMin) * inverseCellWidth;
 
+		gridIndices[index] = gridIndex3Dto1D((int)floor(cell.x), (int)floor(cell.y),
+			(int)floor(cell.z), gridResolution);
 
+		// - Set up a parallel array of integer indices as pointers to the actual
+		//   boid data in pos and vel1/vel2
+		indices[index] = index;
 	}
-
-    // - Set up a parallel array of integer indices as pointers to the actual
-    //   boid data in pos and vel1/vel2
 }
 
 // LOOK-2.1 Consider how this could be useful for indicating that a cell
@@ -393,6 +397,7 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
   // Identify the start point of each cell in the gridIndices array.
   // This is basically a parallel unrolling of a loop that goes
   // "this index doesn't match the one before it, must be a new cell!"
+
 }
 
 __global__ void kernUpdateVelNeighborSearchScattered(
@@ -459,6 +464,18 @@ void Boids::stepSimulationScatteredGrid(float dt) {
   // - Perform velocity updates using neighbor search
   // - Update positions
   // - Ping-pong buffers as needed
+	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
+
+	kernComputeIndices << < fullBlocksPerGrid, threadsPerBlock >> >(numObjects,
+		gridSideCount, gridMinimum, gridInverseCellWidth, dev_pos,
+		dev_particleArrayIndices, dev_particleGridIndices);
+
+	// Sort
+
+	kernIdentifyCellStartEnd << << fullBlocksPerGrid, threadsPerBlock >> > (numObjects,
+		dev_particleGridIndices, dev_gridCellStartIndices, dev_gridCellEndIndices);
+
+
 }
 
 void Boids::stepSimulationCoherentGrid(float dt) {
@@ -483,7 +500,10 @@ void Boids::endSimulation() {
   cudaFree(dev_vel1);
   cudaFree(dev_vel2);
   cudaFree(dev_pos);
-
+  cudaFree(dev_particleArrayIndices);
+  cudaFree(dev_particleGridIndices);
+  cudaFree(dev_gridCellStartIndices);
+  cudaFree(dev_gridCellEndIndices);
   // TODO-2.1 TODO-2.3 - Free any additional buffers here.
 }
 
