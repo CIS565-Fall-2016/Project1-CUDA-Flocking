@@ -17,10 +17,10 @@
 
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
-#define NUMBOIDS 500
+#define NUMBOIDS 50
 int printcnt = 0;
 int maxprints = 2;
 #endif
@@ -353,6 +353,17 @@ __device__ int gridIndex3Dto1D(int x, int y, int z, int gridResolution) {
 }
 
 
+
+__device__ glm::vec3 posToFloat3DIndex(glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth)
+{
+	//to zero-index everything, must subtract off minimum value
+	//NOTE these are still floats!!
+	return  glm::vec3(((pos.x - gridMin.x) * inverseCellWidth),
+		((pos.y - gridMin.y) * inverseCellWidth),
+		((pos.z - gridMin.z) * inverseCellWidth));
+}
+
+
 __global__ void kernComputeIndices(int N, int gridResolution,
   glm::vec3 gridMin, float inverseCellWidth,
   glm::vec3 *pos, int *indices, int *gridIndices) {
@@ -363,11 +374,15 @@ __global__ void kernComputeIndices(int N, int gridResolution,
 		return;
 	}
     // Label each boid with the index of its grid cell.
-	int gridCell = vec3ToGridIndex(pos[index], inverseCellWidth, gridResolution);
+	glm::vec3 grid3DIndex = posToFloat3DIndex(pos[index], gridMin, inverseCellWidth);
+	int gridCell = gridIndex3Dto1D((int)grid3DIndex.x, (int)grid3DIndex.y, (int)grid3DIndex.z, gridResolution);
 
 #if 0
-	if (printcnt < maxprints){
+	if (index == 0){
 		printf("my index: %d\n my cell: %d\n", index, gridCell);
+		printf("my pos: %f %f %f\n", pos[index].x, pos[index].y, pos[index].z);
+		printf("my 3D grid: %f %f %f\n", grid3DIndex.x, grid3DIndex.y, grid3DIndex.z);
+		printf("my gridcell: %d\n", gridCell);
 	}
 #endif
 
@@ -414,60 +429,61 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
 }
 
 
-__device__ glm::vec3 posToFloat3DIndex (glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth)
-{
-	//to zero-index everything, must subtract off minimum value
-	//NOTE these are still floats!!
-	return  glm::vec3(((pos.x - gridMin.x) * inverseCellWidth),
-                      ((pos.y - gridMin.y) * inverseCellWidth),
-                      ((pos.z - gridMin.z) * inverseCellWidth));
-} 
-
-
 __device__ int getNeighbors(glm::vec3 pos, float inverseCellWidth, 
 	float cellWidth, int gridResolution, glm::vec3 gridMin, int * neighbors)
 {
 
-	float halfWidth = cellWidth * 0.5;
+	float halfWidth = cellWidth * 0.5f;
 	glm::vec3 myFloatGridPos =  posToFloat3DIndex (pos, gridMin, inverseCellWidth);
 
-	glm::vec3 gridStart = glm::vec3( 0, 0, 0 );
-	glm::vec3 gridEnd = glm::vec3( 0, 0, 0 );
+	glm::vec3 gridStart = glm::vec3( 0.0f, 0.0f, 0.0f );
+	glm::vec3 gridEnd = glm::vec3( 0.0f, 0.0f, 0.0f );
 
 	//if adding a halfwidth results in the same tile, then they are in 
-	if ((int)((pos.x - gridMin.x + halfWidth) * inverseCellWidth) == (int) myGridPos.x)
-		gridStart.x = -1 ;
+	if ((int)((pos.x - gridMin.x + halfWidth) * inverseCellWidth) == (int)myFloatGridPos.x)
+		gridStart.x = -1.0f ;
 	else 
-		gridEnd.x = 1 ;
+		gridEnd.x = 1.0f ;
 	
-	if ((int)((pos.y - gridMin.y + halfWidth) * inverseCellWidth) == (int) myGridPos.y)
-		gridStart.y = -1 ;
+	if ((int)((pos.y - gridMin.y + halfWidth) * inverseCellWidth) == (int)myFloatGridPos.y)
+		gridStart.y = -1.0f ;
 	else 
-		gridEnd.y = 1 ;
+		gridEnd.y = 1.0f ;
 
-	if ((int)((pos.z - gridMin.z + halfWidth) * inverseCellWidth) == (int) myGridPos.z)
-		gridStart.z = -1 ;
+	if ((int)((pos.z - gridMin.z + halfWidth) * inverseCellWidth) == (int)myFloatGridPos.z)
+		gridStart.z = -1.0f ;
 	else 
-		gridEnd.z = 1 ;
+		gridEnd.z = 1.0f ;
 
 	//our cell is always a "neighbor"
-	neighbors[0] = gridIndex3Dto1D((int) myGridPos.x, (int) myGridPos.y, (int) myGridPos.z, gridResolution);
-	
+	neighbors[0] = gridIndex3Dto1D((int)myFloatGridPos.x, (int)myFloatGridPos.y, (int)myFloatGridPos.z, gridResolution);
+
 	//calculate which cells are adjacent to me and put them in the buffer
 	int neighborCnt = 1; //self index is already in buffer, so start at 1
 
-	for (int i = (int) myGridPos.x + (int) gridStart.x; i < (int) myGridPos.x + (int) gridEnd.x; ++i)
+	for (int i = (int)myFloatGridPos.x + (int)gridStart.x; i <= (int)myFloatGridPos.x + (int)gridEnd.x; ++i)
 	{
-	if (i < 0 || i >= gridResolution)
-		continue;
 
-		for (int j = (int) myGridPos.y + (int) gridStart.y; j < (int) myGridPos.y + (int) gridEnd.y; ++j)
+		if (i < 0 || i >= gridResolution)
+			continue;
+		
+#if DEBUG
+		printf("i = %d, gridRes = %d happened\n. My index was %d\n", i, gridResolution, neighbors[0]);
+#endif
+
+		for (int j = (int)myFloatGridPos.y + (int)gridStart.y; j <= (int)myFloatGridPos.y + (int)gridEnd.y; ++j)
 		{
+#if DEBUG
+			printf("j = %d, gridRes = %d happened\n. My index was %d\n", j, gridResolution, neighbors[0]);
+#endif
 			if (j < 0 || j >= gridResolution)
 			continue;
 
-			for (int k = (int) myGridPos.z + (int) gridStart.z; k < (int) myGridPos.z + (int) gridEnd.z; ++k)
+			for (int k = (int)myFloatGridPos.z + (int)gridStart.z; k <= (int)myFloatGridPos.z + (int)gridEnd.z; ++k)
 			{
+#if DEBUG
+				printf("k = %d, gridRes = %d happened\n. My index was %d\n", k, gridResolution, neighbors[0]);
+#endif
 				if (k < 0 || k >= gridResolution)
 					continue;
 
@@ -477,6 +493,11 @@ __device__ int getNeighbors(glm::vec3 pos, float inverseCellWidth,
 			}
 		}
 	}
+
+#if DEBUG
+	printf("neighbor count was %d\n", neighborCnt);
+
+#endif
 
 	return neighborCnt ;
 }
