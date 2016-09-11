@@ -17,7 +17,7 @@
 
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
 #define NUMBOIDS 10
@@ -553,9 +553,10 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 				centerOfMass = centerOfMass + pos[neighborBoidIndex];
 				++cnt1;
 			}
+
 			// Rule 2: boids try to stay a distance d away from each other
 			if (glm::length(pos[neighborBoidIndex] - pos[myBoidIndex]) < rule2Distance)
-				keepAway = keepAway - (pos[myBoidIndex] - pos[myBoidIndex]);
+				keepAway = keepAway - (pos[neighborBoidIndex] - pos[myBoidIndex]);
 
 			// Rule 3: boids try to match the speed of surrounding boids
 			if (glm::length(pos[neighborBoidIndex] - pos[myBoidIndex]) < rule3Distance)
