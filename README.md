@@ -1,10 +1,23 @@
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture,
 Project 1 - Flocking**
 
-* (TODO) YOUR NAME HERE
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Richard Lee
+* Tested on: Windows 7, i7-3720QM @ 2.60GHz 8GB, GT 650M 4GB (Personal Computer)
 
-### (TODO: Your README)
+![](images/flocking.gif)
 
-Include screenshots, analysis, etc. (Remember, this is public, so don't put
-anything here that you don't want to share with the world.)
+Performance testing was done by measuring the time taken to run 1000 frames of the simulation on each implementation with the different variables.
+
+Testing the number of boids was run with a block size of 128.
+![](images/chart1.gif)
+The time elapsed took longer as the number of boids increased, which was to be expected due to the increased number of comparisons.
+
+Testing the block size was run with 5000 boids.
+![](images/chart2.gif)
+Changing the block size caused fluctuations in the performance of all three methods, but did not lead to any significant increases or decreases in their performance. This could be because the increased number of available threads may not have been efficiently utilized to improve the performance. 
+
+For the coherent uniform grid, the performance was about equal at 5000 agents, with the scattered uniform grid being slightly faster than the coherent grid. However, as the number of agents increased, the time taken for the coherent grid increased at a slower rate and outperformed the scattered grid. 
+
+I expected the coherent grid to outperform the scattered grid at all numbers of agents, and I think this result was because less agents meant that there wasn't as much chance to take advantage of the contiguous boid data, and led to a small difference in performance due to the extra pre-processing step to shuffle the boid data. 
+
+However, the coherent grid allowed for faster direct access of all the boids after the pre-processing shuffle as the number of boids increased, while the scattered grid still had to perform lookups for each boid in the position and velocity arrays, which led to performance advantages as the number of boids scaled up.

@@ -219,14 +219,21 @@ void initShaders(GLuint * program) {
     double fps = 0;
     double timebase = 0;
     int frame = 0;
+	int totalFrames = 0;
 
     Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
 
+	cudaEvent_t start, stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+	cudaEventRecord(start);
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
       frame++;
+	  totalFrames++;
       double time = glfwGetTime();
 
       if (time - timebase > 1.0) {
@@ -236,6 +243,15 @@ void initShaders(GLuint * program) {
       }
 
       runCUDA();
+
+	  //printf("totalFrames %d\n", totalFrames);
+	  if (totalFrames == 500) {
+		  cudaEventRecord(stop);
+		  cudaEventSynchronize(stop);
+		  float milliseconds = 0;
+		  cudaEventElapsedTime(&milliseconds, start, stop);
+		  printf("%f seconds elapsed.\n", milliseconds * .001);
+	  }
 
       std::ostringstream ss;
       ss << "[";
