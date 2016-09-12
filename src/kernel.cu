@@ -63,6 +63,8 @@ void checkCUDAError(const char *msg, int line = -1) {
 /*! Size of the starting area in simulation space. */
 #define scene_scale 100.0f
 
+#define gridFactor 2.0f
+
 /***********************************************
 * Kernel state (pointers are device pointers) *
 ***********************************************/
@@ -167,7 +169,7 @@ void Boids::initSimulation(int N) {
   checkCUDAErrorWithLine("kernGenerateRandomPosArray failed!");
 
   // LOOK-2.1 computing grid params
-  gridCellWidth = 2.0f * std::max(std::max(rule1Distance, rule2Distance), rule3Distance);
+	gridCellWidth = gridFactor * std::max(std::max(rule1Distance, rule2Distance), rule3Distance);
   int halfSideCount = (int)(scene_scale / gridCellWidth) + 1;
   gridSideCount = 2 * halfSideCount;
 
@@ -508,8 +510,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	for (int i = 0; i < 8; i++) {
 		if (gridCellStartIndices[Neighbors[i]] != -1) {
 			for (int j = gridCellStartIndices[Neighbors[i]]; j <= gridCellEndIndices[Neighbors[i]]; j++) {
-				int boidIdx = particleArrayIndices[j];
-				nBoids += computeVelocityChangePair(pos[index], vel1[index], pos[boidIdx], vel1[boidIdx], center, separate, cohesion);
+				nBoids += computeVelocityChangePair(pos[index], vel1[index], pos[particleArrayIndices[j]], vel1[particleArrayIndices[j]], center, separate, cohesion);
 			}
 		}
 	}
@@ -582,6 +583,16 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 	vel2[index] = (speed <= maxSpeed) ? newVel : newVel * maxSpeed / speed;
 }
 
+// Use this to pull velocity and position data out of the Wrapper container
+__global__ void kernSortArray(int N, int *indices, glm::vec3 *vec1, glm::vec3 *vec2) {
+	int index = threadIdx.x + (blockIdx.x * blockDim.x);
+	if (index >= N) {
+		return;
+	}
+
+	vec2[index] = vec1[indices[index]];
+}
+
 /**
 * Step the entire N-body simulation by `dt` seconds.
 */
@@ -641,17 +652,6 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 
 	kernUpdatePos<<<fullBlocksPerGrid, blockSize>>>(numObjects, dt, dev_pos, dev_vel2);
 }
-
-// Use this to pull velocity and position data out of the Wrapper container
-__global__ void kernSortArray(int N, int *indices, glm::vec3 *vec1, glm::vec3 *vec2) {
-	int index = threadIdx.x + (blockIdx.x * blockDim.x);
-	if (index >= N) {
-    return;
-  }
-
-	vec2[index] = vec1[indices[index]];
-}
-
 
 void Boids::stepSimulationCoherentGrid(float dt) {
   // TODO-2.3 - start by copying Boids::stepSimulationNaiveGrid
