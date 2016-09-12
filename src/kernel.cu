@@ -419,10 +419,10 @@ __global__ void kernUpdateVelNeighborSearchScattered(
   // the number of boids that need to be checked.
   // x Identify the grid cell that this particle is in
   // x Identify which cells may contain neighbors. This isn't always 8.
-  // - For each cell, read the start/end indices in the boid pointer array.
-  // - Access each boid in the cell and compute velocity change from
+  // x For each cell, read the start/end indices in the boid pointer array.
+  // x Access each boid in the cell and compute velocity change from
   //   the boids rules, if this boid is within the neighborhood distance.
-  // - Clamp the speed change before putting the new speed in vel2
+  // x Clamp the speed change before putting the new speed in vel2
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (index >= N) {
 		return;
@@ -431,43 +431,39 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	glm::vec3 ipos = pos[index];
 
 	glm::vec3 cell = (ipos - gridMin) * inverseCellWidth;
-	glm::vec3 fcell = glm::fract(cell);
 	glm::ivec3 icell = glm::round(cell);
 
 	int *neighbors = new int[8];
 	int num_neighbors = 0;
 	
-	// x > 0, y > 0, z > 0
-	if (icell.x > 0 && icell.y > 0 && icell.z > 0) {
+	neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x, icell.y, icell.z, gridResolution);
+
+	if (icell.x != 0 && icell.y != 0 && icell.z != 0) {
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x - 1, icell.y - 1, icell.z - 1, gridResolution);
 	}
-	// x > 0, y > 0, z == 0
-	if (icell.x > 0 && icell.y > 0 && icell.z == 0) {
+
+	if (icell.x != 0 && icell.y != 0) {
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x - 1, icell.y - 1, icell.z, gridResolution);
 	}
-	// x > 0, y == 0, z > 0
-	if (icell.x > 0 && icell.y == 0 && icell.z > 0) {
+
+	if (icell.x != 0 && icell.z != 0) {
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x - 1, icell.y, icell.z - 1, gridResolution);
 	}
-	// x == 0, y > 0, z > 0
-	if (icell.x == 0 && icell.y > 0 && icell.z > 0) {
+
+	if (icell.y != 0 && icell.z != 0) {
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x, icell.y - 1, icell.z - 1, gridResolution);
 	}
-	// x > 0, y == 0, z == 0
-	if (icell.x > 0 && icell.y == 0 && icell.z == 0) {
+
+	if (icell.x != 0) {
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x - 1, icell.y, icell.z, gridResolution);
 	}
-	// x == 0, y > 0, z == 0
-	if (icell.x == 0 && icell.y > 0 && icell.z == 0) {
+	
+	if (icell.y != 0) {
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x, icell.y - 1, icell.z, gridResolution);
 	}
-	// x == 0, y == 0, z > 0
-	if (icell.x == 0 && icell.y == 0 && icell.z > 0) {
+
+	if (icell.z != 0) {
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x, icell.y, icell.z - 1, gridResolution);
-	}
-	// x, y, z, less than max
-	if (icell.x < gridResolution && icell.y < gridResolution && icell.z < gridResolution) {
-		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x, icell.y, icell.z, gridResolution);
 	}
 
 	glm::vec3 n_vel = vel2[index];
@@ -477,7 +473,9 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	glm::vec3 v3(0.0f);
 	glm::vec3 com(0.0f);
 	float n_count1 = 0.0f;
-
+	//if (num_neighbors < 8) 
+	//	printf("Num_neighbors: %i\n", num_neighbors);
+	//printf("Cell x: %i y: %i z: %i\n", icell.x, icell.y, icell.z);
 	// Loop through neighboring cells
 	for (int i = 0; i < num_neighbors; i++) {
 		int search = neighbors[i];
@@ -509,7 +507,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 				// Rule 3: boids try to match the speed of surrounding boids
 
 				if (l < rule3Distance) {
-					v3 += vel1[i];
+					v3 += vel1[particleArrayIndices[start]];
 				}
 
 				start++;
@@ -614,7 +612,7 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 	// # = gridCellCount
 	kernResetIntBuffer<<<fullBlocksPerGridCell, threadsPerBlock>>>(gridCellCount, 
 		dev_gridCellStartIndices, -1);
-	kernResetIntBuffer <<<fullBlocksPerGridCell, threadsPerBlock>>>(gridCellCount,
+	kernResetIntBuffer<<<fullBlocksPerGridCell, threadsPerBlock>>>(gridCellCount,
 		dev_gridCellEndIndices, -1);
 
 	// Identify start/end
