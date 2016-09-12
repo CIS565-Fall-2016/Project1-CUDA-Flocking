@@ -13,9 +13,9 @@
 // ================
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
-#define VISUALIZE 1
-#define UNIFORM_GRID 1
-#define COHERENT_GRID 1
+#define VISUALIZE 0
+#define UNIFORM_GRID 0
+#define COHERENT_GRID 0
 
 // fix the fact that VC++ 2010 is not C99 compliant
 #if defined(_WIN32) || defined(_WIN64)
