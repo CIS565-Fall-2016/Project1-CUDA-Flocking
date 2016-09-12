@@ -473,18 +473,20 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	glm::vec3 v3(0.0f);
 	glm::vec3 com(0.0f);
 	float n_count1 = 0.0f;
-	//if (num_neighbors < 8) 
-	//	printf("Num_neighbors: %i\n", num_neighbors);
-	//printf("Cell x: %i y: %i z: %i\n", icell.x, icell.y, icell.z);
+	if (num_neighbors < 8) 
+		printf("Num_neighbors: %i\n", num_neighbors);
+	//if (icell.x > 20 || icell.y > 20 || icell.z > 20)
+	//	printf("Cell x: %i y: %i z: %i\n", icell.x, icell.y, icell.z);
 	// Loop through neighboring cells
 	for (int i = 0; i < num_neighbors; i++) {
 		int search = neighbors[i];
+
 		int start = gridCellStartIndices[search];
 		
 		// If cell contains boids
 		if (start >= 0) {
 			int end = gridCellEndIndices[search];
-			
+			//printf("NumCells: %i Start %i End %i\n", gridResolution*gridResolution*gridResolution, start, end);
 			// Loop through boids in cell
 			while (start <= end) {
 
@@ -541,6 +543,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	}
 
 	// Record the new velocity 
+	printf("Vel: %f, %f, %f\n", n_vel.x, n_vel.y, n_vel.z);
 	vel2[index] = n_vel;
 }
 
