@@ -5,7 +5,7 @@ Project 1 - Flocking**
 * Tested on: Windows 10, I5-4690k @ 3.50GHz 8.00GB, GTX 750-TI 2GB (Personal Computer)
 
 ### Flocking Simulation
-![][images/uniform_5000.gif]
+![5000 Boids](images/uniform_5000.gif)
 
 #### Part 1: Naive Solution
 
