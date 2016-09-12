@@ -13,7 +13,7 @@
 // ================
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
-#define VISUALIZE 1
+#define VISUALIZE 0
 #define UNIFORM_GRID 1
 #define COHERENT_GRID 1
 
@@ -222,7 +222,7 @@ void initShaders(GLuint * program) {
 
     Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
-
+	FILE* fp = fopen("sss.txt", "w");
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
@@ -232,9 +232,16 @@ void initShaders(GLuint * program) {
       if (time - timebase > 1.0) {
         fps = frame / (time - timebase);
         timebase = time;
+		if (time < 120)
+		{
+			fprintf(fp, "%lf\n", fps);
+			
+		}
+		else
+			break;
         frame = 0;
       }
-
+	  
       runCUDA();
 
       std::ostringstream ss;
@@ -259,6 +266,7 @@ void initShaders(GLuint * program) {
       glfwSwapBuffers(window);
       #endif
     }
+	fclose(fp);
     glfwDestroyWindow(window);
     glfwTerminate();
   }
