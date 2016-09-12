@@ -2,9 +2,21 @@
 Project 1 - Flocking**
 
 * (TODO) YOUR NAME HERE
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Tested on: Windows 7, i7-xxx @ xGHz xxGB, Quadro K620 2048MB (Moore 100C Lab)
 
-### (TODO: Your README)
+### 
 
-Include screenshots, analysis, etc. (Remember, this is public, so don't put
-anything here that you don't want to share with the world.)
+
+
+Perfomance Analysis
+
+Naive Implementation
+
+
+
+Uniform Grid Implementation
+
+
+
+Coherent Grid Implementation
+
