@@ -14,11 +14,11 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 0
-#define COHERENT_GRID 0
+#define UNIFORM_GRID 1
+#define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 10000;
 const float DT = 0.2f;
 
 /**
@@ -42,6 +42,7 @@ int main(int argc, char* argv[]) {
 
 std::string deviceName;
 GLFWwindow *window;
+cudaGraphicsResource *posVboHandle, *velVboHandle;
 
 /**
 * Initialization of CUDA and GLFW.
@@ -101,12 +102,8 @@ bool init(int argc, char **argv) {
   // Initialize drawing state
   initVAO();
 
-  // Default to device ID 0. If you have more than one GPU and want to test a non-default one,
-  // change the device ID.
-  cudaGLSetGLDevice(0);
-
-  cudaGLRegisterBufferObject(boidVBO_positions);
-  cudaGLRegisterBufferObject(boidVBO_velocities);
+  cudaGraphicsGLRegisterBuffer(&posVboHandle, boidVBO_positions, cudaGraphicsRegisterFlagsNone);
+  cudaGraphicsGLRegisterBuffer(&velVboHandle, boidVBO_velocities, cudaGraphicsRegisterFlagsNone);
 
   // Initialize N-body simulation
   Boids::initSimulation(N_FOR_VIS);
@@ -194,9 +191,13 @@ void initShaders(GLuint * program) {
     float4 *dptr = NULL;
     float *dptrVertPositions = NULL;
     float *dptrVertVelocities = NULL;
+	size_t devPosSize;
+	size_t devVelSize;
 
-    cudaGLMapBufferObject((void**)&dptrVertPositions, boidVBO_positions);
-    cudaGLMapBufferObject((void**)&dptrVertVelocities, boidVBO_velocities);
+	cudaGraphicsMapResources(1, &posVboHandle, 0);
+	cudaGraphicsMapResources(1, &velVboHandle, 0);
+	cudaGraphicsResourceGetMappedPointer((void **)&dptrVertPositions, &devPosSize, posVboHandle);
+	cudaGraphicsResourceGetMappedPointer((void **)&dptrVertVelocities, &devVelSize, velVboHandle);
 
     // execute the kernel
     #if UNIFORM_GRID && COHERENT_GRID
@@ -210,9 +211,10 @@ void initShaders(GLuint * program) {
     #if VISUALIZE
     Boids::copyBoidsToVBO(dptrVertPositions, dptrVertVelocities);
     #endif
+
     // unmap buffer object
-    cudaGLUnmapBufferObject(boidVBO_positions);
-    cudaGLUnmapBufferObject(boidVBO_velocities);
+	cudaGraphicsUnmapResources(1, &posVboHandle, 0);
+	cudaGraphicsUnmapResources(1, &velVboHandle, 0);
   }
 
   void mainLoop() {
@@ -239,9 +241,11 @@ void initShaders(GLuint * program) {
 
       std::ostringstream ss;
       ss << "[";
-      ss.precision(1);
+      ss.precision(2);
       ss << std::fixed << fps;
-      ss << " fps] " << deviceName;
+      ss << " fps] " 
+		  << " [" << Boids::averageSimTime << " ms] "
+		  << deviceName;
       glfwSetWindowTitle(window, ss.str().c_str());
 
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
