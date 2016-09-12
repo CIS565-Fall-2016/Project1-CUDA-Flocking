@@ -569,8 +569,8 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
   // except with one less level of indirection.
   // This should expect gridCellStartIndices and gridCellEndIndices to refer
   // directly to pos and vel1.
-  // - Identify the grid cell that this particle is in
-  // - Identify which cells may contain neighbors. This isn't always 8.
+  // x Identify the grid cell that this particle is in
+  // x Identify which cells may contain neighbors. This isn't always 8.
   // - For each cell, read the start/end indices in the boid pointer array.
   //   DIFFERENCE: For best results, consider what order the cells should be
   //   checked in to maximize the memory benefits of reordering the boids data.
@@ -628,10 +628,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 	glm::vec3 v3(0.0f);
 	glm::vec3 com(0.0f);
 	float n_count1 = 0.0f;
-	if (num_neighbors < 8)
-		printf("Num_neighbors: %i\n", num_neighbors);
-	//if (icell.x > 20 || icell.y > 20 || icell.z > 20)
-	//	printf("Cell x: %i y: %i z: %i\n", icell.x, icell.y, icell.z);
+
 	// Loop through neighboring cells
 	for (int i = 0; i < num_neighbors; i++) {
 		int search = neighbors[i];
@@ -645,7 +642,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 			// Loop through boids in cell
 			while (start <= end) {
 
-				glm::vec3 b = pos[particleArrayIndices[start]];
+				glm::vec3 b = pos[start];
 
 				float l = glm::length(b - ipos);
 
@@ -664,7 +661,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 				// Rule 3: boids try to match the speed of surrounding boids
 
 				if (l < rule3Distance) {
-					v3 += vel1[particleArrayIndices[start]];
+					v3 += vel1[start];
 				}
 
 				start++;
@@ -835,7 +832,7 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 	// # = numObjects
 	kernUpdateVelNeighborSearchCoherent << <fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects,
 		gridSideCount, gridMinimum, gridInverseCellWidth, gridCellWidth, dev_gridCellStartIndices,
-		dev_gridCellEndIndices, dev_particleArrayIndices, dev_contiguousPos, dev_contiguousVel, dev_vel2);
+		dev_gridCellEndIndices, dev_contiguousPos, dev_contiguousVel, dev_vel2);
 
 	// Update positions
 	// # = numObjects
@@ -855,6 +852,9 @@ void Boids::endSimulation() {
   cudaFree(dev_particleGridIndices);
   cudaFree(dev_gridCellStartIndices);
   cudaFree(dev_gridCellEndIndices);
+  cudaFree(dev_contiguousIndices);
+  cudaFree(dev_contiguousPos);
+  cudaFree(dev_contiguousVel);
   // TODO-2.1 TODO-2.3 - Free any additional buffers here.
 }
 
