@@ -516,6 +516,9 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 			}
 		}
 	}
+
+	delete[] neighbors;
+
 	if (n_count1 > 0.0f) {
 		com /= n_count1;
 		v1 = (com - ipos) * rule1Scale;
@@ -543,7 +546,6 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	}
 
 	// Record the new velocity 
-	printf("Vel: %f, %f, %f\n", n_vel.x, n_vel.y, n_vel.z);
 	vel2[index] = n_vel;
 }
 
