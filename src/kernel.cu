@@ -19,6 +19,20 @@
 
 #define DEBUG 0
 
+#define PROFILE 1
+
+#if PROFILE 
+//Events for timing analysis
+cudaEvent_t beginLoop;
+cudaEvent_t endLoop;
+cudaEvent_t beginEvent;
+cudaEvent_t endEvent;
+
+//event time records
+float randomPosKernelTime;
+float searchAlgoTime;
+#endif
+
 #if DEBUG
 #define NUMBOIDS 10
 int printcnt = 0;
@@ -153,6 +167,10 @@ __global__ void kernGenerateRandomPosArray(int time, int N, glm::vec3 * arr, flo
 void Boids::initSimulation(int N) {
   numObjects = N;
   dim3 fullBlocksPerGrid((N + blockSize - 1) / blockSize);
+#if PROFILE
+  cudaEventCreate(&beginEvent);
+  cudaEventCreate(&endEvent);
+#endif
 
   // LOOK-1.2 - This is basic CUDA memory management and error checking.
   // Don't forget to cudaFree in  Boids::endSimulation.
@@ -164,11 +182,22 @@ void Boids::initSimulation(int N) {
 
   cudaMalloc((void**)&dev_vel2, N * sizeof(glm::vec3));
   checkCUDAErrorWithLine("cudaMalloc dev_vel2 failed!");
+  
+#if PROFILE
+  cudaEventRecord(beginEvent, 0);
+#endif
 
   // LOOK-1.2 - This is a typical CUDA kernel invocation.
   kernGenerateRandomPosArray<<<fullBlocksPerGrid, blockSize>>>(1, numObjects,
     dev_pos, scene_scale);
   checkCUDAErrorWithLine("kernGenerateRandomPosArray failed!");
+
+#if PROFILE
+  cudaEventRecord(endEvent, 0);
+  cudaEventSynchronize(endEvent);
+  cudaEventElapsedTime(&randomPosKernelTime, beginEvent, endEvent);
+  std::cout << "pos init Time: " << randomPosKernelTime << std::endl;
+#endif
 
   // LOOK-2.1 computing grid params
   gridCellWidth = 2.0f * std::max(std::max(rule1Distance, rule2Distance), rule3Distance);
@@ -694,10 +723,19 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 */
 void Boids::stepSimulationNaive(float dt) {
 	dim3 fullBlocksPerGrid = (numObjects + blockSize - 1) / blockSize ;
+
+#if PROFILE
+	cudaEventRecord(beginEvent, 0);
+#endif
 	// TODO-1.2 - use the kernels you wrote to step the simulation forward in time.
 	kernUpdateVelocityBruteForce <<<fullBlocksPerGrid, blockSize >>>(numObjects, dev_pos, dev_vel1, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdateVelocityBruteForce failed!");
-
+#if PROFILE
+	cudaEventRecord(endEvent, 0);
+	cudaEventSynchronize(endEvent);
+	cudaEventElapsedTime(&searchAlgoTime, beginEvent, endEvent);
+	std::cout << "search Time: " << searchAlgoTime << std::endl;
+#endif
 	kernUpdatePos <<<fullBlocksPerGrid, blockSize >>>(numObjects, dt, dev_pos, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdatePos failed!");
 	
@@ -817,6 +855,10 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 
 #endif
 
+#if PROFILE
+	cudaEventRecord(beginEvent, 0);
+#endif
+
   // - Perform velocity updates using neighbor search
 	kernUpdateVelNeighborSearchScattered <<<fullBlocksPerGrid, blockSize >>> (
 		numObjects, gridSideCount, gridMinimum,
@@ -825,7 +867,12 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 		dev_particleArrayIndices,
 		dev_pos, dev_vel1, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdateVelNeighborSearchScattered failed!");
-
+#if PROFILE
+	cudaEventRecord(endEvent, 0);
+	cudaEventSynchronize(endEvent);
+	cudaEventElapsedTime(&searchAlgoTime, beginEvent, endEvent);
+	std::cout << "search Time: " << searchAlgoTime << std::endl;
+#endif
   // - Update positions
 	kernUpdatePos <<<fullBlocksPerGrid, blockSize>>>(numObjects, dt, dev_pos, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdatePos failed!");
@@ -943,13 +990,21 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 	}
 #endif
 
+#if PROFILE
+	cudaEventRecord(beginEvent, 0);
+#endif
   // - Perform velocity updates using neighbor search
 	kernUpdateVelNeighborSearchCoherent << <fullBlocksPerGrid, blockSize >> >(numObjects, gridSideCount, gridMinimum,
 		gridInverseCellWidth, gridCellWidth,
 		dev_gridCellStartIndices, dev_gridCellEndIndices,
 		dev_orderedPos, dev_orderedVel, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdateVelNeighborSearchCoherent failed!");
-
+#if PROFILE
+	cudaEventRecord(endEvent, 0);
+	cudaEventSynchronize(endEvent);
+	cudaEventElapsedTime(&randomPosKernelTime, beginEvent, endEvent);
+	std::cout << "search Time: " << searchAlgoTime << std::endl;
+#endif
 	//Replace the updated velocities in their original indices 
 	kernReplaceBoidVelData << <fullBlocksPerGrid, blockSize >> >(numObjects, dev_particleArrayIndices,
 		dev_vel1, dev_vel2);
@@ -967,7 +1022,6 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 #if DEBUG
 	printcnt++;
 #endif
-
 }
 
 void Boids::endSimulation() {
@@ -983,6 +1037,11 @@ void Boids::endSimulation() {
 
   cudaFree(dev_orderedPos);
   cudaFree(dev_orderedVel);
+
+#if PROFILE
+  cudaEventDestroy(beginEvent);
+  cudaEventDestroy(endEvent);
+#endif
 }
 
 void Boids::unitTest() {
