@@ -414,9 +414,9 @@ __global__ void kernUpdateVelNeighborSearchScattered(
   int yBegin = (pos[index].y < midpoints.y) ? -1 : 0;
 	int zBegin = (pos[index].z < midpoints.z) ? -1 : 0;
 	int gridCellCount = gridResolution * gridResolution * gridResolution;
-  for (int dx = 0; dx <= 1; dx++) {
+  for (int dz = 0; dz <= 1; dz++) {
     for (int dy = 0; dy <= 1; dy++) {
-      for (int dz = 0; dz <= 1; dz++) {
+      for (int dx = 0; dx <= 1; dx++) {
         int otherGridIndex = gridIndex + (dx + xBegin) + gridResolution * (dy + yBegin) + gridResolution * gridResolution * (dz + zBegin);
         if (otherGridIndex < 0 || otherGridIndex >= gridCellCount) continue;
         // - For each cell, read the start/end indices in the boid pointer array.
@@ -483,24 +483,26 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
   int gridIndex = gridIndex3Dto1D(gridPos.x, gridPos.y, gridPos.z, gridResolution);
   // - Identify which cells may contain neighbors. This isn't always 8.
   glm::vec3 velocityChange(0.0f, 0.0f, 0.0f);
-  glm::vec3 ownPosition = pos[index];
   glm::vec3 sumPosition(0.0f, 0.0f, 0.0f);
   glm::vec3 sumStayAway(0.0f, 0.0f, 0.0f);
   glm::vec3 sumVelocity(0.0f, 0.0f, 0.0f);
+	glm::vec3 ownPos = pos[index];
   float nearbyCount = 0.0;
 
   //   DIFFERENCE: For best results, consider what order the cells should be
   //   checked in to maximize the memory benefits of reordering the boids data.
   glm::vec3 midpoints = (((glm::vec3)gridPos + glm::vec3(0.5f, 0.5f, 0.5f)) * cellWidth) + gridMin;
-  int xBegin = (pos[index].x < midpoints.x) ? -1 : 0;
-  int yBegin = (pos[index].y < midpoints.y) ? -1 : 0;
-  int zBegin = (pos[index].z < midpoints.z) ? -1 : 0;
-	int gridCellCount = gridResolution * gridResolution * gridResolution;
-  for (int dx = 0; dx <= 1; dx++) {
+	int xOffset = (ownPos.x < midpoints.x) ? -1 : 0;
+	int yOffset = (ownPos.y < midpoints.y) ? -1 : 0;
+	int zOffset = (ownPos.z < midpoints.z) ? -1 : 0;
+  for (int dz = 0; dz <= 1; dz++) {
     for (int dy = 0; dy <= 1; dy++) {
-      for (int dz = 0; dz <= 1; dz++) {
-        int otherGridIndex = gridIndex + (dx + xBegin) + gridResolution * (dy + yBegin) + gridResolution * gridResolution * (dz + zBegin);
-				if (otherGridIndex < 0 || otherGridIndex >= gridCellCount) continue;
+      for (int dx = 0; dx <= 1; dx++) {
+				int otherGridIndex = gridIndex 
+					+ (dx + xOffset) 
+					+ gridResolution * (dy + yOffset)
+					+ gridResolution * gridResolution * (dz + zOffset);
+				if (otherGridIndex < 0 || otherGridIndex >= gridResolution * gridResolution * gridResolution) continue;
         // - For each cell, read the start/end indices in the boid pointer array.
         int startIndex = gridCellStartIndices[otherGridIndex];
         int endIndex = gridCellEndIndices[otherGridIndex];
@@ -513,7 +515,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
           if (j == index) {
             continue;
           }
-          float distance = glm::length(ownPosition - pos[j]);
+					float distance = glm::length(ownPos - pos[j]);
           // Rule 1: boids fly towards their local perceived center of mass, which excludes themselves
           if (distance < rule1Distance) {
             nearbyCount += 1.0;
@@ -521,7 +523,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
           }
           // Rule 2: boids try to stay a distance d away from each other
           if (distance < rule2Distance) {
-            sumStayAway += ownPosition - pos[j];
+						sumStayAway += ownPos - pos[j];
           }
           // Rule 3: boids try to match the speed of surrounding boids
           if (distance < rule3Distance) {
@@ -533,7 +535,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
   }
   if (nearbyCount > 0) {
     sumPosition = sumPosition / nearbyCount;
-    velocityChange += (sumPosition - ownPosition) * rule1Scale;
+		velocityChange += (sumPosition - ownPos) * rule1Scale;
   }
   velocityChange += sumStayAway * rule2Scale;
   velocityChange += sumVelocity * rule3Scale;
@@ -541,7 +543,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
   glm::vec3 newVelocity = vel1[index] + velocityChange;
   float speed = glm::length(newVelocity);
   if (speed > maxSpeed) {
-    newVelocity = (newVelocity / speed) * maxSpeed;
+    newVelocity = glm::normalize(newVelocity) * maxSpeed;
   }
   vel2[index] = newVelocity;
 }
