@@ -33,11 +33,11 @@ char* loadFile(const char *fname, GLint &fSize) {
         file.seekg(0, ios::beg);
         file.read(memblock, size);
         file.close();
-        std::cout << "file " << fname << " loaded" << std::endl;
+        std::cerr << "file " << fname << " loaded" << std::endl;
         return memblock;
     }
 
-    std::cout << "Unable to open file " << fname << std::endl;
+    std::cerr << "Unable to open file " << fname << std::endl;
     exit(1);
 }
 
@@ -55,7 +55,7 @@ void printShaderInfoLog(GLint shader) {
         infoLog = new GLchar[infoLogLen];
         // error check for fail to allocate memory omitted
         glGetShaderInfoLog(shader, infoLogLen, &charsWritten, infoLog);
-        std::cout << "InfoLog:" << std::endl << infoLog << std::endl;
+        std::cerr << "InfoLog:" << std::endl << infoLog << std::endl;
         delete [] infoLog;
     }
 }
@@ -71,7 +71,7 @@ void printLinkInfoLog(GLint prog) {
         infoLog = new GLchar[infoLogLen];
         // error check for fail to allocate memory omitted
         glGetProgramInfoLog(prog, infoLogLen, &charsWritten, infoLog);
-        std::cout << "InfoLog:" << std::endl << infoLog << std::endl;
+        std::cerr << "InfoLog:" << std::endl << infoLog << std::endl;
         delete [] infoLog;
     }
 }
@@ -112,7 +112,7 @@ shaders_t loadShaders(const char * vert_path, const char * geom_path, const char
     glCompileShader(v);
     glGetShaderiv(v, GL_COMPILE_STATUS, &compiled);
     if (!compiled) {
-        std::cout << "Vertex shader not compiled." << std::endl;
+        std::cerr << "Vertex shader not compiled." << std::endl;
     }
     printShaderInfoLog(v);
 
@@ -120,7 +120,7 @@ shaders_t loadShaders(const char * vert_path, const char * geom_path, const char
         glCompileShader(g);
         glGetShaderiv(g, GL_COMPILE_STATUS, &compiled);
         if (!compiled) {
-            std::cout << "Geometry shader not compiled." << std::endl;
+            std::cerr << "Geometry shader not compiled." << std::endl;
         }
         printShaderInfoLog(g);
     }
@@ -128,7 +128,7 @@ shaders_t loadShaders(const char * vert_path, const char * geom_path, const char
     glCompileShader(f);
     glGetShaderiv(f, GL_COMPILE_STATUS, &compiled);
     if (!compiled) {
-        std::cout << "Fragment shader not compiled." << std::endl;
+        std::cerr << "Fragment shader not compiled." << std::endl;
     }
     printShaderInfoLog(f);
 
@@ -157,7 +157,7 @@ void attachAndLinkProgram(GLuint program, shaders_t shaders) {
     GLint linked;
     glGetProgramiv(program, GL_LINK_STATUS, &linked);
     if (!linked) {
-        std::cout << "Program did not link." << std::endl;
+        std::cerr << "Program did not link." << std::endl;
     }
     printLinkInfoLog(program);
 }
