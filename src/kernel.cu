@@ -29,7 +29,18 @@ void checkCUDAError(const char *msg, int line = -1) {
     exit(EXIT_FAILURE);
   }
 }
-
+/***********************
+* Performance Analysis *
+************************/
+#define perfAnal float elapsed = 0;\
+cudaEventElapsedTime(&elapsed, cudaEventStart, cudaEventStop);\
+totalEventTime += elapsed;\
+eventCount++;\
+if (!(skip++ % 1000)) {\
+	printf("%f %f\n", totalEventTime / eventCount, elapsed);\
+	totalEventTime = 0;\
+	eventCount = 0;\
+}\
 
 /*****************
 * Configuration *
@@ -462,20 +473,18 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 */
 void Boids::stepSimulationNaive(float dt) {
 	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
-	cudaEventRecord(cudaEventStart);
+	//cudaEventRecord(cudaEventStart);
 	kernUpdateVelocityBruteForce<<<fullBlocksPerGrid, blockSize>>>(numObjects, dev_pos, dev_vel1, dev_vel2);
-	cudaEventRecord(cudaEventStop);
+	//cudaEventRecord(cudaEventStop);
+	//cudaEventSynchronize(cudaEventStop);
+
 	kernUpdatePos<<<fullBlocksPerGrid, blockSize>>>(numObjects, dt, dev_pos, dev_vel2);
 
 	glm::vec3 *tmp = dev_vel1;
 	dev_vel1 = dev_vel2;
 	dev_vel2 = tmp;
-	cudaEventSynchronize(cudaEventStop);
-	float elapsed = 0;
-	cudaEventElapsedTime(&elapsed, cudaEventStart, cudaEventStop);
-	totalEventTime += elapsed;
-	eventCount++;
-	if (!(skip++ % 1000)) printf("%f\n", totalEventTime / eventCount);
+	
+	//perfAnal
 	
 }
 
@@ -488,15 +497,18 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 	thrust::sort_by_key(dev_thrust_particleGridIndices, dev_thrust_particleGridIndices + numObjects, dev_thrust_particleArrayIndices);
 	
 	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize >> >(numObjects, dev_particleGridIndices, dev_gridCellStartIndices, dev_gridCellEndIndices);
-
+	cudaEventRecord(cudaEventStart);
 	kernUpdateVelNeighborSearchScattered << <fullBlocksPerGrid, blockSize >> >(numObjects, gridSideCount, gridMinimum, gridInverseCellWidth,
 		gridCellWidth, dev_gridCellStartIndices, dev_gridCellEndIndices, dev_particleArrayIndices, dev_pos, dev_vel1, dev_vel2);
+	cudaEventRecord(cudaEventStop);
+	cudaEventSynchronize(cudaEventStop);
 	kernUpdatePos << <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_pos, dev_vel2);
 
 	glm::vec3 *tmp = dev_vel1;
 	dev_vel1 = dev_vel2;
 	dev_vel2 = tmp;
 
+	//perfAnal
 }
 
 __global__ void kernShuffleBuffer(int N, int *ref, glm::vec3 *orig, glm::vec3 *dest) {
@@ -519,14 +531,18 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 	
 	kernShuffleBuffer << <fullBlocksPerGrid, blockSize >> >(numObjects, dev_particleArrayIndices, dev_pos, dev_shuffledPos);
 	kernShuffleBuffer << <fullBlocksPerGrid, blockSize >> >(numObjects, dev_particleArrayIndices, dev_vel1, dev_vel2);
-
+	cudaEventRecord(cudaEventStart);
 	kernUpdateVelNeighborSearchCoherent << <fullBlocksPerGrid, blockSize >> >(numObjects, gridSideCount, gridMinimum, gridInverseCellWidth,
 		gridCellWidth, dev_gridCellStartIndices, dev_gridCellEndIndices, dev_shuffledPos, dev_vel2, dev_vel1);
+	cudaEventRecord(cudaEventStop);
+	cudaEventSynchronize(cudaEventStop);
 	kernUpdatePos << <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_shuffledPos, dev_vel1);
 
 	glm::vec3 *tmp = dev_pos;
 	dev_pos = dev_shuffledPos;
 	dev_shuffledPos = tmp;
+
+	perfAnal
 }
 
 void Boids::endSimulation() {
