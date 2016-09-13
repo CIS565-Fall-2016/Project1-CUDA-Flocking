@@ -80,6 +80,12 @@ float gridCellWidth;
 float gridInverseCellWidth;
 glm::vec3 gridMinimum;
 
+// Performance Analysis
+cudaEvent_t cudaEventStart, cudaEventStop;
+float totalEventTime = 0;
+int eventCount = 0;
+int skip = 0;
+
 /******************
 * initSimulation *
 ******************/
@@ -158,6 +164,9 @@ void Boids::initSimulation(int N) {
   
   dev_thrust_particleArrayIndices = thrust::device_ptr<int>(dev_particleArrayIndices);
   dev_thrust_particleGridIndices = thrust::device_ptr<int>(dev_particleGridIndices);
+
+  cudaEventCreate(&cudaEventStart);
+  cudaEventCreate(&cudaEventStop);
 
   cudaThreadSynchronize();
 }
@@ -453,12 +462,21 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 */
 void Boids::stepSimulationNaive(float dt) {
 	dim3 fullBlocksPerGrid((numObjects + blockSize - 1) / blockSize);
+	cudaEventRecord(cudaEventStart);
 	kernUpdateVelocityBruteForce<<<fullBlocksPerGrid, blockSize>>>(numObjects, dev_pos, dev_vel1, dev_vel2);
+	cudaEventRecord(cudaEventStop);
 	kernUpdatePos<<<fullBlocksPerGrid, blockSize>>>(numObjects, dt, dev_pos, dev_vel2);
 
 	glm::vec3 *tmp = dev_vel1;
 	dev_vel1 = dev_vel2;
 	dev_vel2 = tmp;
+	cudaEventSynchronize(cudaEventStop);
+	float elapsed = 0;
+	cudaEventElapsedTime(&elapsed, cudaEventStart, cudaEventStop);
+	totalEventTime += elapsed;
+	eventCount++;
+	if (!(skip++ % 1000)) printf("%f\n", totalEventTime / eventCount);
+	
 }
 
 void Boids::stepSimulationScatteredGrid(float dt) {
