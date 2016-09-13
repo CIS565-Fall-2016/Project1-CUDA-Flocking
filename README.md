@@ -7,6 +7,8 @@ Project 1 - Flocking**
 # Performance Analysis
 In the following section, we analyze the performance of our 3 kernel functions and algorithms. We use framerate and timers for velocity updates to demonstrate how the three different approaches differ. We take average samples over 1000 iterations for velocity update timers. Velocity calculation timings are highlighted specifically since algorithmic differences are present. The other kernel functions in Coherent and Scattered grid approaches are trivial and embarassingly parallel thus they provide no interesting insight. 
 
+![Table and Charts of Data](/images/tables.png)
+
 ##### Naive Implementation
 At an algorithmic viewpoing, each boid requires an additional check for N-1 other boids , thus increasing the number of boids will increase computation type by a strictly N^2 factor. From a low-level perspective, the number of boids that can be computed in parallel is limited by the number of threads that the hardware has (any more would require boids than the number of threads would require multiple stages to calculate position updates all of them). Since the access for each boid would be all the other boids, I would assume that the locality of the data is poor leading to access time issues since data access is wide ranged. Both the algorithmic and low level issues are reflected in the data as expected. We can see that the velocity calculation takes up the majority of the time per boid and grows by the same factor that the frame rate drops. 
 
