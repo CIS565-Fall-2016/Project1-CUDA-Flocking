@@ -50,6 +50,13 @@ takes to prepare the new velocities for the updatePos kernel,
 which is standard accross implementaions. 
 This is the time interval I am trying to show in the results below.
 
+The metrics below clearly indicate that performace is inversely proportional to the number of boids. This is becuase as the number of boids rises, so does the population density. As a result, each boid will have that many more neighbors for which to calculate the three rules. Moreover, since each boid needs to calculate the effect of every other boid, the impact of increased boids is exponential. 
+
+Implementing the coherent uniform grid definitely resulted in performace 
+increase. This is the result we expected, since it cuts out a memory
+access and instead uses a uniform addressing scheme. I found this a bit suprising, since we are still required to do a memory accces, albeit in 
+the form of data relocation. Perhaps it has to do with a not needing to 
+flush a data set out of cache. 
 
 ###Naive Implementation
 Fortunately, only one kernel call occurs between position updates
@@ -104,3 +111,4 @@ coherent
 5,000,000 Boids
 
 ![](images/coherent5_000_000.PNG)
+
