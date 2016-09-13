@@ -11,4 +11,4 @@ the Boids algorithm implements flocking behavior as seen in birds as an emergent
 from a few simple rules. The algorithm is embarassingly parallel, as the behavior of each
 Boid depends only on the previous state of the system.
 
-![alt text](images/boid_demo "Boids Demo")
+![alt text](images/boid_demo.gif "Boids Demo")
