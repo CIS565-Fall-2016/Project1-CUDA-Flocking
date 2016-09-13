@@ -85,7 +85,6 @@ int *dev_gridCellEndIndices;   // to this cell?
 
 // TODO-2.3 - consider what additional buffers you might need to reshuffle
 // the position and velocity data to be coherent within cells.
-int *dev_contiguousIndices;
 glm::vec3 *dev_contiguousPos;
 glm::vec3 *dev_contiguousVel;
 // LOOK-2.1 - Grid parameters based on simulation parameters.
@@ -182,9 +181,6 @@ void Boids::initSimulation(int N) {
 
   cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_particleEndIndices failed!");
-
-  cudaMalloc((void**)&dev_contiguousIndices, N * sizeof(int));
-  checkCUDAErrorWithLine("cudaMalloc dev_contiguousIndices failed!");
 
   cudaMalloc((void**)&dev_contiguousPos, N * sizeof(glm::vec3));
   checkCUDAErrorWithLine("cudaMalloc dev_contiguousPos failed!");
@@ -323,7 +319,7 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
 		return;
 
 	glm::vec3 n_vel = computeVelocityChange(N, index, pos, vel1);
-	n_vel += vel2[index];
+	n_vel += vel1[index];
     // Clamp the speed
 	float speed = glm::length(n_vel);
 	if (speed > maxSpeed) {
@@ -477,7 +473,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x, icell.y, icell.z - 1, gridResolution);
 	}
 
-	glm::vec3 n_vel = vel2[index];
+	glm::vec3 n_vel = vel1[index];
 
 	glm::vec3 v1(0.0f);
 	glm::vec3 v2(0.0f);
@@ -621,7 +617,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 		neighbors[num_neighbors++] = gridIndex3Dto1D(icell.x, icell.y, icell.z - 1, gridResolution);
 	}
 
-	glm::vec3 n_vel = vel2[index];
+	glm::vec3 n_vel = vel1[index];
 
 	glm::vec3 v1(0.0f);
 	glm::vec3 v2(0.0f);
@@ -703,16 +699,14 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 
 // Kernel to put boid data in coherentVel and coherentPos such that 
 // it is contiguous
-__global__ void kernMakeCoherent(int N, int *arrayIndices, glm::vec3 *pos, glm::vec3 *vel, int *coherentIndices,
-	glm::vec3 *coherentPos, glm::vec3 *coherentVel) {
+__global__ void kernMakeCoherent(int N, int *arrayIndices, glm::vec3 *pos, 
+	glm::vec3 *vel,	glm::vec3 *coherentPos, glm::vec3 *coherentVel) {
 	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
 	if (index < N) {
 		int boid_index = arrayIndices[index];
 
-		coherentIndices[index] = index;
 		coherentPos[index] = pos[boid_index];
 		coherentVel[index] = vel[boid_index];
-
 	}
 }
 
@@ -845,7 +839,7 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 
 	// Move boid data to coherent memory
 	kernMakeCoherent << < fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects, dev_particleArrayIndices,
-		dev_pos, dev_vel1, dev_contiguousIndices, dev_contiguousPos, dev_contiguousVel);
+		dev_pos, dev_vel1, dev_contiguousPos, dev_contiguousVel);
 
 	// Update velocities
 	// # = numObjects
@@ -859,7 +853,7 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 		dev_contiguousPos, dev_vel2);
 
 	// Restore arrays and swap
-	kernRestore << <fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects, dev_contiguousIndices,
+	kernRestore << <fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects, dev_particleArrayIndices,
 		dev_contiguousPos, dev_vel2, dev_pos, dev_vel1);
 
 }
@@ -872,7 +866,6 @@ void Boids::endSimulation() {
   cudaFree(dev_particleGridIndices);
   cudaFree(dev_gridCellStartIndices);
   cudaFree(dev_gridCellEndIndices);
-  cudaFree(dev_contiguousIndices);
   cudaFree(dev_contiguousPos);
   cudaFree(dev_contiguousVel);
   // TODO-2.1 TODO-2.3 - Free any additional buffers here.
