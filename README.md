@@ -3,6 +3,7 @@ Project 1 - Flocking**
 
 * David Liao
 * Tested on: Windows 7, Xeon E5-1630 v4 @ 3.70GHz 32GB, GTX 1070 4096MB (SigLab MOR 103-57)
+![Table and Charts of Data](/images/5000boids.gif)
 
 # Performance Analysis
 In the following section, we analyze the performance of our 3 kernel functions and algorithms. We use framerate and timers for velocity updates to demonstrate how the three different approaches differ. We take average samples over 1000 iterations for velocity update timers. Velocity calculation timings are highlighted specifically since algorithmic differences are present. The other kernel functions in Coherent and Scattered grid approaches are trivial and embarassingly parallel thus they provide no interesting insight. 
