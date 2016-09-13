@@ -70,7 +70,7 @@ In order to achieve an obvious comparison, I push the amount of boids to the lim
 
 As the charts show, changing the block count and block size does not obviously affect the performance while increasing the block size slowers the efficiency of **Uniform Boids** but improve the performance of **Coherent Uniform Boids**. To explain better, let's remind the steps I mentioned before.
 
-> *... we have to iterate over each boid [ **step 1**] and for each boid, we have to iterate over other boids to calculate out the distance [ **step 2** ]*
+> *... we have to iterate over each boid [step 1] and for each boid, we have to iterate over other boids to calculate out the distance [step 2]*
 
 The unaffected performance of **Naive Boids** has proved that [ **step 1**] won't be the crucial factor of this interesting result. Hence, the only difference between **Uniform Boids** and **Coherent Uniform Boids**, the memory allocation, should be the determinant. The pictures below may explain this.
 
