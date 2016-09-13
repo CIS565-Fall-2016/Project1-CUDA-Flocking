@@ -37,13 +37,13 @@ void checkCUDAError(const char *msg, int line = -1) {
 *****************/
 
 /*! Block size used for CUDA kernel launch. */
-#define blockSize 128
+#define blockSize 256
 
 // LOOK-1.2 Parameters for the boids algorithm.
 // These worked well in our reference implementation.
-#define rule1Distance 5.0f
-#define rule2Distance 3.0f
-#define rule3Distance 5.0f
+#define rule1Distance 2.5f
+#define rule2Distance 1.5f
+#define rule3Distance 2.5f
 
 #define rule1Scale 0.01f
 #define rule2Scale 0.1f
