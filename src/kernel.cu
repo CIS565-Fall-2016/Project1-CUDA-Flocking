@@ -506,25 +506,25 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 	int N = numObjects;
 	dim3 fullBlocksPerGrid((N + blockSize - 1) / blockSize);
   // - label each particle with its array index as well as its grid index.
-	kernComputeIndices << <fullBlocksPerGrid, blockSize >> > (numObjects, gridSideCount, gridMinimum, gridInverseCellWidth, dev_pos, dev_particleArrayIndices, dev_particleGridIndices);
+	kernComputeIndices << <fullBlocksPerGrid, blockSize >> > (N, gridSideCount, gridMinimum, gridInverseCellWidth, dev_pos, dev_particleArrayIndices, dev_particleGridIndices);
 	checkCUDAErrorWithLine("kernComputeIndices failed!");
   //   Use 2x width grids.
   // - Unstable key sort using Thrust. A stable sort isn't necessary, but you
   //   are welcome to do a performance comparison.
 	dev_thrust_particleArrayIndices = thrust::device_ptr<int>(dev_particleArrayIndices);
 	dev_thrust_particleGridIndices = thrust::device_ptr<int>(dev_particleGridIndices);
-	thrust::sort_by_key(dev_thrust_particleGridIndices, dev_thrust_particleGridIndices + numObjects, dev_thrust_particleArrayIndices);
+	thrust::sort_by_key(dev_thrust_particleGridIndices, dev_thrust_particleGridIndices + N, dev_thrust_particleArrayIndices);
   // - Naively unroll the loop for finding the start and end indices of each
   //   cell's data pointers in the array of boid indices
-	kernResetIntBuffer << <fullBlocksPerGrid, blockSize >> > (numObjects, dev_gridCellStartIndices, -1);
-	kernResetIntBuffer << <fullBlocksPerGrid, blockSize >> > (numObjects, dev_gridCellEndIndices, -1);
-	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize >> > (numObjects, dev_particleGridIndices, dev_gridCellStartIndices, dev_gridCellEndIndices);
+	kernResetIntBuffer << <fullBlocksPerGrid, blockSize >> > (N, dev_gridCellStartIndices, -1);
+	kernResetIntBuffer << <fullBlocksPerGrid, blockSize >> > (N, dev_gridCellEndIndices, -1);
+	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize >> > (N, dev_particleGridIndices, dev_gridCellStartIndices, dev_gridCellEndIndices);
 	checkCUDAErrorWithLine("kernIdentifyCellStartEnd failed!");
   // - Perform velocity updates using neighbor search
-	kernUpdateVelNeighborSearchScattered << <fullBlocksPerGrid, blockSize >> > (numObjects, gridSideCount, gridMinimum, gridInverseCellWidth, gridCellWidth, dev_gridCellStartIndices, dev_gridCellEndIndices, dev_particleArrayIndices, dev_pos, dev_vel1, dev_vel2);
+	kernUpdateVelNeighborSearchScattered << <fullBlocksPerGrid, blockSize >> > (N, gridSideCount, gridMinimum, gridInverseCellWidth, gridCellWidth, dev_gridCellStartIndices, dev_gridCellEndIndices, dev_particleArrayIndices, dev_pos, dev_vel1, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdateVelNeighborSearchScattered failed!");
   // - Update positions
-	kernUpdatePos << <fullBlocksPerGrid, blockSize >> > (numObjects, dt, dev_pos, dev_vel2);
+	kernUpdatePos << <fullBlocksPerGrid, blockSize >> > (N, dt, dev_pos, dev_vel2);
 	checkCUDAErrorWithLine("kernUpdatePos failed!");
   // - Ping-pong buffers as needed
 	std::swap(dev_vel1, dev_vel2);
@@ -534,18 +534,32 @@ void Boids::stepSimulationCoherentGrid(float dt) {
   // TODO-2.3 - start by copying Boids::stepSimulationNaiveGrid
   // Uniform Grid Neighbor search using Thrust sort on cell-coherent data.
   // In Parallel:
+	int N = numObjects;
+	dim3 fullBlocksPerGrid((N + blockSize - 1) / blockSize);
   // - Label each particle with its array index as well as its grid index.
+	kernComputeIndices << <fullBlocksPerGrid, blockSize >> > (N, gridSideCount, gridMinimum, gridInverseCellWidth, dev_pos, dev_particleArrayIndices, dev_particleGridIndices);
+	checkCUDAErrorWithLine("kernComputeIndices failed!");
   //   Use 2x width grids
   // - Unstable key sort using Thrust. A stable sort isn't necessary, but you
   //   are welcome to do a performance comparison.
+	dev_thrust_particleArrayIndices = thrust::device_ptr<int>(dev_particleArrayIndices);
+	dev_thrust_particleGridIndices = thrust::device_ptr<int>(dev_particleGridIndices);
+	thrust::sort_by_key(dev_thrust_particleGridIndices, dev_thrust_particleGridIndices + N, dev_thrust_particleArrayIndices);
   // - Naively unroll the loop for finding the start and end indices of each
   //   cell's data pointers in the array of boid indices
+	kernResetIntBuffer << <fullBlocksPerGrid, blockSize >> > (N, dev_gridCellStartIndices, -1);
+	kernResetIntBuffer << <fullBlocksPerGrid, blockSize >> > (N, dev_gridCellEndIndices, -1);
+	kernIdentifyCellStartEnd << <fullBlocksPerGrid, blockSize >> > (N, dev_particleGridIndices, dev_gridCellStartIndices, dev_gridCellEndIndices);
   // - BIG DIFFERENCE: use the rearranged array index buffer to reshuffle all
   //   the particle data in the simulation array.
   //   CONSIDER WHAT ADDITIONAL BUFFERS YOU NEED
+
   // - Perform velocity updates using neighbor search
+	kernUpdateVelNeighborSearchScattered << <fullBlocksPerGrid, blockSize >> > (N, gridSideCount, gridMinimum, gridInverseCellWidth, gridCellWidth, dev_gridCellStartIndices, dev_gridCellEndIndices, dev_particleArrayIndices, dev_pos, dev_vel1, dev_vel2);
   // - Update positions
+	kernUpdatePos << <fullBlocksPerGrid, blockSize >> > (N, dt, dev_pos, dev_vel2);
   // - Ping-pong buffers as needed. THIS MAY BE DIFFERENT FROM BEFORE.
+	std::swap(dev_vel1, dev_vel2);
 }
 
 void Boids::endSimulation() {
