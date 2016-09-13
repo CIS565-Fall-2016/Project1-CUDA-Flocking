@@ -32,7 +32,8 @@ to the same order as the Boid index array, making the data coherent and saving l
 
 Optimizations were tested by running each implementation, referred to as 'brute force',
 'uniform', and 'coherent', on Boid counts ranging from 5,000 to 1,000,000. Implementations
-were also tested on CUDA block sizes ranging from 128 threads to 1,024 threads.
+were also tested on CUDA block sizes ranging from 128 threads to 1,024 threads. Single-step
+execution time was smoothed by an infinite horizon filter with alpha=0.95.
 
 ## Peak and Steady-State Rates
 
