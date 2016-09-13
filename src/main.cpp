@@ -5,20 +5,21 @@
 * @date      2013-2016
 * @copyright University of Pennsylvania
 */
-
+#include "stdafx.h"
 #include "main.hpp"
-
+#include <math.h>
+#include <algorithm>
 // ================
 // Configuration
 // ================
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 0
-#define COHERENT_GRID 0
+#define UNIFORM_GRID 1
+#define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 50000;
 const float DT = 0.2f;
 
 /**
@@ -32,7 +33,7 @@ int main(int argc, char* argv[]) {
     Boids::endSimulation();
     return 0;
   } else {
-    return 1;
+    return 1;  
   }
 }
 
@@ -284,12 +285,12 @@ void initShaders(GLuint * program) {
       // compute new camera parameters
       phi += (xpos - lastX) / width;
       theta -= (ypos - lastY) / height;
-      theta = std::fmax(0.01f, std::fmin(theta, 3.14f));
+      theta = std::max(0.01f, std::min(theta, 3.14f));
       updateCamera();
     }
     else if (rightMousePressed) {
       zoom += (ypos - lastY) / height;
-      zoom = std::fmax(0.1f, std::fmin(zoom, 5.0f));
+      zoom = std::max(0.1f, std::min(zoom, 5.0f));
       updateCamera();
     }
 
