@@ -487,28 +487,6 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 		bool cell_y = std::fmod(pos[boid_index].y - gridMin.y, cellWidth) > (cellWidth / 2);
 		bool cell_z = std::fmod(pos[boid_index].z - gridMin.z, cellWidth) > (cellWidth / 2);
 
-		int neighbor_cell[8] = {cell_index, cell_index, cell_index, cell_index, cell_index, cell_index, cell_index, cell_index};
-		for (int i = 0; i < 8; ++i)
-		{
-			if (i >= 4)
-			{
-				if (cell_x) neighbor_cell[i]++;
-				else neighbor_cell[i]--;
-			}
-
-			if (i == 2 || i == 3 || i == 7 || i == 6)
-			{
-				if (cell_y) neighbor_cell[i] += gridResolution;
-				else neighbor_cell[i] -= gridResolution;
-			}
-
-			if (i == 1 || i == 3 || i == 5 || i == 7)
-			{
-				if (cell_z) neighbor_cell[i] += gridResolution * gridResolution;
-				else neighbor_cell[i] -= gridResolution * gridResolution;
-			}
-		}
-
 		int base_x = cell_x ? x : x - 1;
 		int base_y = cell_y ? y : y - 1;
 		int base_z = cell_z ? z : z - 1;
