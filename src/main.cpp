@@ -14,7 +14,7 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 0
-#define UNIFORM_GRID 0
+#define UNIFORM_GRID 1
 #define COHERENT_GRID 0
 
 // fix the fact that VC++ 2010 is not C99 compliant
@@ -26,7 +26,7 @@
 #endif
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 10000;
 const float DT = 0.2f;
 
 /**
@@ -228,6 +228,10 @@ void initShaders(GLuint * program) {
     double timebase = 0;
     int frame = 0;
 
+		float avgFrame = 0.0f;
+		int totalFrames = 0;
+		double timebase2 = 0;
+
     //Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
 
@@ -235,13 +239,23 @@ void initShaders(GLuint * program) {
       glfwPollEvents();
 
       frame++;
+			totalFrames++;
       double time = glfwGetTime();
+
+			// running average time per 100 frames
+			avgFrame = .99*avgFrame + .01*(time - timebase2);
+			timebase2 = time;
+			if (totalFrames % 100 == 0) {
+				printf("Average Execution Time: %f\n", avgFrame);
+				totalFrames = 0;
+			}
 
       if (time - timebase > 1.0) {
         fps = frame / (time - timebase);
-        timebase = time;
-        frame = 0;
+				timebase = time;
+				frame = 0;
       }
+
 
       runCUDA();
 
