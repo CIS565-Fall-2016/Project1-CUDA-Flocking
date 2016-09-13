@@ -641,7 +641,7 @@ void Boids::stepSimulationNaive(float dt) {
 	totaltime += milliseconds;
 	steps++;
 	if (steps == PROFILE_STEPS) {
-		printf("Naive average execution time: %f", totaltime / steps);
+		printf("Naive average execution time: %f\n", totaltime / steps);
 		exit(0);
 	}
 	#endif
@@ -700,7 +700,7 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 	totaltime += milliseconds;
 	steps++;
 	if (steps == PROFILE_STEPS) {
-		printf("Scattered search execution time: %f", totaltime / steps);
+		printf("Scattered search execution time: %f\n", totaltime / steps);
 		exit(0);
 	}
 	#endif
@@ -766,7 +766,7 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 	totaltime += milliseconds;
 	steps++;
 	if (steps == PROFILE_STEPS) {
-		printf("Coherent search execution time: %f", totaltime / steps);
+		printf("Coherent search execution time: %f\n", totaltime / steps);
 		exit(0);
 	}
 	#endif
