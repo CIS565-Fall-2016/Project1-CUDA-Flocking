@@ -9,7 +9,7 @@ Project 1 - Flocking**
 ___
 
 
-![](./image/CoherentBoidsFlocking.gif)
+![](./images/CoherentBoidsFlocking.gif)
 
 >*Due to my use of gif tools [LICEcap](http://www.cockos.com/licecap/), my FPS gets much slower.*
 
@@ -36,11 +36,11 @@ ___
 ### Basic Analysis
 
 The performance of **Naive Boids**, **Uniform Boids** and **Coherent Uniform Boids** is measured by FPS. Different amounts of boids are considered. The results are as below.
-![](./image/table1.jpg)
+![](./images/table1.jpg)
 
-![](./image/table2.jpg)
+![](./images/table2.jpg)
 
-![](./image/table3.jpg)
+![](./images/table3.jpg)
 
 In conclusion, the performance ranking is that **Coherent Uniform Boids > Uniform Boids > Naive Boids**. Besides, as the amount of boids increases, all the performance is weakened.
 
@@ -60,11 +60,11 @@ For **Coherent Uniform Grid Boids**, since it optimizes for the memory allocatio
 
 The result is quite interesting. I do the comparison as following:
 
-![](./image/table4.jpg)
+![](./images/table4.jpg)
 
-![](./image/table5.jpg)
+![](./images/table5.jpg)
 
-![](./image/table6.jpg)
+![](./images/table6.jpg)
 	
 In order to achieve an obvious comparison, I push the amount of boids to the limit and keep FPS below 60. `boids = 10000` for **Naive Boids** and `boids = 100000` for both **Uniform Boids** and **Coherent Uniform Boids** fit very well.
 
@@ -74,9 +74,9 @@ As the charts show, changing the block count and block size does not obviously a
 
 The unaffected performance of **Naive Boids** has proved that [ **step 1**] won't be the crucial factor of this interesting result. Hence, the only difference between **Uniform Boids** and **Coherent Uniform Boids**, the memory allocation, should be the determinant. The pictures below may explain this.
 
-![](./image/pic1.jpg)
+![](./images/pic1.jpg)
 
-![](./image/pic2.jpg)
+![](./images/pic2.jpg)
 
 If the data in the global memory is scattered, it will be tough for lots of threads in a large block to access them, since threads will be grouped into warps during the execution, as mentioned in [https://devblogs.nvidia.com/parallelforall/how-access-global-memory-efficiently-cuda-c-kernels/](https://devblogs.nvidia.com/parallelforall/how-access-global-memory-efficiently-cuda-c-kernels/). Rather, it's not efficient for lots of threads in many small blocks to access a large chunk of contiguous global memory.
 
