@@ -15,8 +15,11 @@ Project 1 - Flocking**
 ### (Performance Analysis)
 The visualization has been disabled so that the performance analysis is based on the CUDA simulation only.
 * Performance comparison with blocksize fixed (128).
+
 ![](images/performance-1.JPG)
 * Performance comparison with particle number fixed (5000).
+
 ![](images/performance-2.JPG)
+
 Include screenshots, analysis, etc. (Remember, this is public, so don't put
 anything here that you don't want to share with the world.)
