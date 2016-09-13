@@ -701,6 +701,31 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 	vel2[index] = n_vel;
 }
 
+// Kernel to put boid data in coherentVel and coherentPos such that 
+// it is contiguous
+__global__ void kernMakeCoherent(int N, int *arrayIndices, glm::vec3 *pos, glm::vec3 *vel, int *coherentIndices,
+	glm::vec3 *coherentPos, glm::vec3 *coherentVel) {
+	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if (index < N) {
+		int boid_index = arrayIndices[index];
+
+		coherentIndices[index] = index;
+		coherentPos[index] = pos[boid_index];
+		coherentVel[index] = vel[boid_index];
+
+	}
+}
+
+__global__ void kernRestore(int N, int *coherentIndices, glm::vec3 *coherentPos, 
+	glm::vec3 *coherentVel, glm::vec3 *pos, glm::vec3 *vel) {
+	int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+	if (index < N) {
+		int boid_index = coherentIndices[index];
+
+		pos[boid_index] = coherentPos[index];
+		vel[boid_index] = coherentVel[index];
+	}
+}
 /**
 * Step the entire N-body simulation by `dt` seconds.
 */
@@ -783,12 +808,12 @@ void Boids::stepSimulationCoherentGrid(float dt) {
   //   are welcome to do a performance comparison.
   // x Naively unroll the loop for finding the start and end indices of each
   //   cell's data pointers in the array of boid indices
-  // - BIG DIFFERENCE: use the rearranged array index buffer to reshuffle all
+  // x BIG DIFFERENCE: use the rearranged array index buffer to reshuffle all
   //   the particle data in the simulation array.
   //   CONSIDER WHAT ADDITIONAL BUFFERS YOU NEED
   // x Perform velocity updates using neighbor search
   // x Update positions
-  // - Ping-pong buffers as needed. THIS MAY BE DIFFERENT FROM BEFORE.
+  // x Ping-pong buffers as needed. THIS MAY BE DIFFERENT FROM BEFORE.
 
 	dim3 fullBlocksPerGridBoid((numObjects + blockSize - 1) / blockSize);
 	dim3 fullBlocksPerGridCell((gridCellCount + blockSize - 1) / blockSize);
@@ -819,14 +844,8 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 		dev_particleGridIndices, dev_gridCellStartIndices, dev_gridCellEndIndices);
 
 	// Move boid data to coherent memory
-	for (int i = 0; i < numObjects; i++) {
-		int index = dev_particleArrayIndices[i];
-
-		dev_contiguousIndices[i] = index;
-		dev_contiguousPos[i] = dev_pos[index];
-		dev_contiguousVel[i] = dev_vel1[index];
-
-	}
+	kernMakeCoherent << < fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects, dev_particleArrayIndices,
+		dev_pos, dev_vel1, dev_contiguousIndices, dev_contiguousPos, dev_contiguousVel);
 
 	// Update velocities
 	// # = numObjects
@@ -836,12 +855,13 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 
 	// Update positions
 	// # = numObjects
-	kernUpdatePos << < fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects, dt, dev_pos, dev_vel2);
+	kernUpdatePos << < fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects, dt, 
+		dev_contiguousPos, dev_vel2);
 
-	// DIFFERENT????
-	glm::vec3 *swap = dev_vel1;
-	dev_vel1 = dev_vel2;
-	dev_vel2 = swap;
+	// Restore arrays and swap
+	kernRestore << <fullBlocksPerGridBoid, threadsPerBlock >> >(numObjects, dev_contiguousIndices,
+		dev_contiguousPos, dev_vel2, dev_pos, dev_vel1);
+
 }
 
 void Boids::endSimulation() {
