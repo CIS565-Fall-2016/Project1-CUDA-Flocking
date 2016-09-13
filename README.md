@@ -20,12 +20,19 @@ Build Instructions
 Performance analysis
 ====================
 
-|                        | 5000 particles | 50000 particles | 500000 particles |
-|------------------------|----------------|-----------------|------------------|
-| Naive search           | 60 fps         | 20 fps          | (crashes)        |
-| Scattered uniform grid | 60 fps         | 60 fps          | 6 fps            |
-| Coherent uniform grid  | 60 fps         | 60 fps          | 60 fps           |
+|                        | 5000 particles | 10000 particles | 50000 particles | 500000 particles |
+|------------------------|----------------|-----------------|-----------------|------------------|
+| Naive search           | 700 fps        | 350 fps         | 20 fps          | (crashes)        |
+| Scattered uniform grid | 770 fps        | 1100 fps        | 490 fps         | 6 fps            |
+| Coherent uniform grid  | 770 fps        | 1100 fps        | 1100 fps        | 72 fps           |
 
-The uniform grid is clearly much better than the naive search. Between the scattered and coherent uniform grids, the
-scattered grid achieves 37.50% utilization in the main velocity update kernel, whereas the coherent grid achieves 50%
-utilization.
+* For the naive search, increasing the number of boids decreases performance, which is expected, as more computations
+ need to be done to figure out velocity changes when the number of boids increases.
+* However, for the uniform grids, the performance increases when going from 5000 to 10000 particles, but decreases
+after that. This may be related to branching effects: there may not be empty grid cells with a sufficient number of particles.
+
+* Increasing the block size does not change the performance of the uniform grid implementation significantly. This is
+because the overall utilization of the device remains similar.
+
+* The coherent uniform grid had significant performance improvement over the scattered uniform grid. This was expected,
+since this takes better advantage of caching and avoids expensive memory accesses.
