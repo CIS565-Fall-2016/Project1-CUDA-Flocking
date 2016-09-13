@@ -14,11 +14,15 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 0
-#define COHERENT_GRID 0
+#define UNIFORM_GRID 1
+#define COHERENT_GRID 1
+
+#define PROFILE_MODE 0
+#define PROFILE_TIME 45
+#define PROFILE_FRAMES 25000
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+int N_FOR_VIS = 5000;
 const float DT = 0.2f;
 
 /**
@@ -66,6 +70,9 @@ bool init(int argc, char **argv) {
   std::ostringstream ss;
   ss << projectName << " [SM " << major << "." << minor << " " << deviceProp.name << "]";
   deviceName = ss.str();
+
+  if (argc > 1)
+    N_FOR_VIS = atoi(argv[1]);
 
   // Window setup stuff
   glfwSetErrorCallback(errorCallback);
@@ -184,9 +191,9 @@ void initShaders(GLuint * program) {
   }
 
   //====================================
-  // Main loop
+  // Main loop. Returns simulation time.
   //====================================
-  void runCUDA() {
+  double runCUDA() {
     // Map OpenGL buffer object for writing from CUDA on a single GPU
     // No data is moved (Win & Linux). When mapped to CUDA, OpenGL should not
     // use this buffer
@@ -199,6 +206,7 @@ void initShaders(GLuint * program) {
     cudaGLMapBufferObject((void**)&dptrVertVelocities, boidVBO_velocities);
 
     // execute the kernel
+    double t1 = clock();
     #if UNIFORM_GRID && COHERENT_GRID
     Boids::stepSimulationCoherentGrid(DT);
     #elif UNIFORM_GRID
@@ -206,6 +214,7 @@ void initShaders(GLuint * program) {
     #else
     Boids::stepSimulationNaive(DT);
     #endif
+    double t2 = clock();
 
     #if VISUALIZE
     Boids::copyBoidsToVBO(dptrVertPositions, dptrVertVelocities);
@@ -213,20 +222,28 @@ void initShaders(GLuint * program) {
     // unmap buffer object
     cudaGLUnmapBufferObject(boidVBO_positions);
     cudaGLUnmapBufferObject(boidVBO_velocities);
+
+    return t2-t1;
   }
 
   void mainLoop() {
     double fps = 0;
     double timebase = 0;
-    int frame = 0;
+    int frame = 0, totFrame = 0;
+    double dtMin = DBL_MAX, dtPrev = 0.0;
+    double t0 = glfwGetTime();
 
+    /*
     Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
+    */
 
+    double dt = 0.0, avgdt = 0.0;
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
       frame++;
+      totFrame++;
       double time = glfwGetTime();
 
       if (time - timebase > 1.0) {
@@ -235,7 +252,15 @@ void initShaders(GLuint * program) {
         frame = 0;
       }
 
-      runCUDA();
+      dt = runCUDA();
+      if (totFrame == 1)
+        avgdt = dt;
+      else
+        avgdt = .95*avgdt + .05*dt;
+      if (avgdt < dtMin)
+        dtMin = avgdt;
+      if (PROFILE_MODE && (time-t0 > PROFILE_TIME || totFrame > PROFILE_FRAMES))
+        break;
 
       std::ostringstream ss;
       ss << "[";
@@ -261,6 +286,8 @@ void initShaders(GLuint * program) {
     }
     glfwDestroyWindow(window);
     glfwTerminate();
+
+    printf("[%d,%f,%f],\n", N_FOR_VIS, 1.0E6*dtMin/CLOCKS_PER_SEC, 1.0E6*avgdt/CLOCKS_PER_SEC);
   }
 
 
