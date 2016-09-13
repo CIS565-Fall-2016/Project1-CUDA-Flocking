@@ -23,7 +23,7 @@ behavior very similar to how schools of fish or flocks of birds move in nature, 
 
 ![Flocking Simulation with Grid Pruning](images/uniform_5000.gif)
 
-## Part 1 Naive Solution
+# Part 1 Naive Solution
 The boids flocking simulation is naively calculated by comparing euclidean distance from the current
 boid to every other boid in the simulation, and checking if the 
 
