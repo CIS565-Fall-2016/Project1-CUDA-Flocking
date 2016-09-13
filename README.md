@@ -61,4 +61,20 @@ Averaged runCUDA() time vs different block size:
 * For the coherent uniform grid: did you experience any performance improvements with the more coherent uniform grid? Was this the outcome you expected?
 	* Yes. According to **Averaged runCUDA() Elapsed Time vs Number of Boids**, Coherent Uniform Grid **did** perform better than basic Uniform Grid implementation, which was the same as I expected. After re-shuffling the `pos` and `vel` arrays of particle, the data will be more consistent and continuous in memory. "Consistent and continuous" means that physically adjacent threads (continuous thread indices) on GPU will be likely to access the same location of memory since they are likely to locate in the same grid cell. And the information of boids in the same grid cell are re-shuffled to make them continuous in memory, so there will be performance improvement for Coherent Uniform Grid. Performance will be improved from more continuous data structure in memory on GPU, which will increase the memory hit-rate within a block size where the threads are physically adjacent.
 
-	
+## Additional Performance Analysis 
+The following two implementations for `kernUpdateVelNeighborSearchScattered` had only one line difference, but their performances was really different. NO.1 implementation took the thread index as particle index in `vel` and `pos` directly, and NO.2 implementation took the thread index as particle index in `particleArrayIndices`.
+
+Adjacent threads in NO.2 implementation had higher possibilities that particles were in the same grid cell. So the memory access pattern of NO.2 is more continuous than NO.1 and better in performance, which is also demonstrated by the performance analysis.
+
+|Implementation NO.1|Implementation NO.2|
+|------|------|
+|![](figures/scatteredIndex.PNG)|![](figures/coherentIndex.PNG)|
+|![](figures/scatteredProf.PNG)|![](figures/coherentProf.PNG)|
+|runtime: **5+ ms**|runtime: **2+ ms**|
+
+They have elapsed time difference over **3ms**, just one line of code is different, the memory access pattern and performance has changed so much. 
+
+So trying to keep the adjacent threads concerning the continuous data in memory and make them coherent in memory will be beneficial to increase the performance.
+
+
+
