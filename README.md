@@ -1,15 +1,17 @@
 **University of Pennsylvania, CIS 565: GPU Programming and Architecture,
 Project 1 - Flocking**
 
+* Name: Zhan Xiong Chin
+* Tested on: Windows 7 Professional, Intel(R) Xeon(R) CPU E5-1630 v4 @ 3.70 GHz 3.70 GHz, GTX 1070 8192MB (SIG Lab)
+
 ![](images/boids2.gif)
+
 10000 particle simulation
 
 ![](images/boids.gif)
+
 500000 particle simulation
 
-
-* Name: Zhan Xiong Chin
-* Tested on: Windows 7 Professional, Intel(R) Xeon(R) CPU E5-1630 v4 @ 3.70 GHz 3.70 GHz, GTX 1070 8192MB (SIG Lab)
 
 Build Instructions
 ==================
