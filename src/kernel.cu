@@ -146,6 +146,9 @@ void Boids::initSimulation(int N) {
   cudaMalloc((void**)&dev_pos, N * sizeof(glm::vec3));
   checkCUDAErrorWithLine("cudaMalloc dev_pos failed!");
 
+  cudaMalloc((void**)&dev_pos_coherent, N * sizeof(glm::vec3));
+  checkCUDAErrorWithLine("cudaMalloc dev_pos_coherent failed!");
+
   cudaMalloc((void**)&dev_vel1, N * sizeof(glm::vec3));
   checkCUDAErrorWithLine("cudaMalloc dev_vel1 failed!");
 
@@ -181,9 +184,6 @@ void Boids::initSimulation(int N) {
 
   cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
-
-  cudaMalloc((void**)&dev_pos_coherent, N * sizeof(glm::vec3));
-  checkCUDAErrorWithLine("cudaMalloc dev_pos_coherent failed!");
 
   cudaThreadSynchronize();
 }
@@ -622,7 +622,7 @@ void Boids::stepSimulationCoherentGrid(float dt) {
   // - Perform velocity updates using neighbor search
 	kernUpdateVelNeighborSearchCoherent << <fullBlocksPerGrid, blockSize >> > (N, gridSideCount, gridMinimum, gridInverseCellWidth, gridCellWidth, dev_gridCellStartIndices, dev_gridCellEndIndices, dev_pos_coherent, dev_vel2, dev_vel1);
   // - Update positions
-	kernUpdatePos << <fullBlocksPerGrid, blockSize >> > (N, dt, dev_pos_coherent, dev_vel2);
+	kernUpdatePos << <fullBlocksPerGrid, blockSize >> > (N, dt, dev_pos_coherent, dev_vel1);
   // - Ping-pong buffers as needed. THIS MAY BE DIFFERENT FROM BEFORE.
 	std::swap(dev_pos, dev_pos_coherent);
 }
