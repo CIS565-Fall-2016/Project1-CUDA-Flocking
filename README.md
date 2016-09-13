@@ -27,5 +27,11 @@ The visualization has been disabled so that the performance analysis is based on
 
 ![](images/performance-2.JPG)
 
+|                        | Blocksize=64| Blocksize=128 | Blocksize=192| Blocksize=256 |  
+|------------------------|----------------|-----------------|-----------------|------------------| 
+| Naive search (avg cuda time per frame (ms))           |    0.02012    |    0.01861   |   0.02178     |  0.01863 |
+| Scattered uniform grid (avg cuda time per frame (ms))  |    0.00197  |     0.0022 |     0.0022  | 0.00191  |
+| Coherent uniform grid (avg cuda time per frame (ms))  |    0.00119  |   0.00115  |   0.00118   |    0.00125       | 
+
 Include screenshots, analysis, etc. (Remember, this is public, so don't put
 anything here that you don't want to share with the world.)
