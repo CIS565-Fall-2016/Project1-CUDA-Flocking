@@ -14,11 +14,12 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 0
-#define COHERENT_GRID 0
+#define UNIFORM_GRID 1
+#define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+// note : use Release mode without debugging!
+const int N_FOR_VIS = 30000;
 const float DT = 0.2f;
 
 /**
@@ -65,6 +66,8 @@ bool init(int argc, char **argv) {
 
   std::ostringstream ss;
   ss << projectName << " [SM " << major << "." << minor << " " << deviceProp.name << "]";
+  ss << ", [Boids number = " << N_FOR_VIS << ", Time step = " << DT << "]";
+  ss << ", [Resolution: " << width << "*" << height << "]";
   deviceName = ss.str();
 
   // Window setup stuff
@@ -220,7 +223,12 @@ void initShaders(GLuint * program) {
     double timebase = 0;
     int frame = 0;
 
-    Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
+	double avg_cudaElaspedTime = 0;
+	double cudaElapsedTime = 0;
+	double cudaElaspedTimebase = 0;
+	int cudaRunCount = 0;
+
+    //Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
 
     while (!glfwWindowShouldClose(window)) {
@@ -235,13 +243,40 @@ void initShaders(GLuint * program) {
         frame = 0;
       }
 
-      runCUDA();
+	  /* use cuda event to calculate runCuda() time elapsed (accumulate and average over a time period = 0.1s)*/
+	  cudaRunCount++;
 
+	  cudaEvent_t start, stop;
+	  float elapsedTime = 0;
+
+	  cudaEventCreate(&start);
+	  cudaEventRecord(start, 0);
+
+      runCUDA();
+	  
+	  cudaEventCreate(&stop);
+	  cudaEventRecord(stop, 0);
+	  cudaEventSynchronize(stop);
+
+	  cudaEventElapsedTime(&elapsedTime, start, stop);
+
+	  cudaElapsedTime += elapsedTime;
+	  //if (cudaElapsedTime - cudaElaspedTimebase > 100) // 100ms
+	  if (cudaRunCount > 100) // 100 runs
+	  {
+		  avg_cudaElaspedTime = (cudaElapsedTime - cudaElaspedTimebase) / float(cudaRunCount);
+		  cudaRunCount = 0;
+		  cudaElaspedTimebase = cudaElapsedTime;
+		  std::cout << fps << ", " << avg_cudaElaspedTime << std::endl;
+	  }
+
+	  // write information to window's title
       std::ostringstream ss;
       ss << "[";
       ss.precision(1);
       ss << std::fixed << fps;
       ss << " fps] " << deviceName;
+	  ss << " [runCUDA() elapsed time = " << avg_cudaElaspedTime << " ms]";
       glfwSetWindowTitle(window, ss.str().c_str());
 
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
