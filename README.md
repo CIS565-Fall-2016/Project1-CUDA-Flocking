@@ -5,7 +5,7 @@ Project 1 - Flocking**
 * Tested on: Windows 7, Xeon E5-1630 v4 @ 3.70GHz 32GB, GTX 1070 4096MB (SigLab MOR 103-57)
 
 
-# BOIDS!!!
+# Flocking Simulation
 ![boids](/images/5000boids.gif)
 
 # Performance Analysis
