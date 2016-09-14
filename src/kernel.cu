@@ -643,23 +643,30 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 	auto index_y = static_cast<int>(gridcell_index3d.y);
 	auto index_z = static_cast<int>(gridcell_index3d.z);
 
+
 	int possible_neighbor_indices[8]; 
 	// CHANGE: order of this array changed from 2.1 to match the best for(z): for(y): for(x) order
-	possible_neighbor_indices[0] = gridIndex3Dto1DWithCheck(index_x, index_y, index_z
+	int index_z_smaller = imin(index_z, index_z + sign_z);
+	int index_z_bigger = imax(index_z, index_z + sign_z);
+	int index_y_smaller = imin(index_y, index_y + sign_y);
+	int index_y_bigger = imax(index_y, index_y + sign_y);
+	int index_x_smaller = imin(index_x, index_x + sign_x);
+	int index_x_bigger = imax(index_x, index_x + sign_x);
+	possible_neighbor_indices[0] = gridIndex3Dto1DWithCheck(index_x_smaller, index_y_smaller, index_z_smaller
 		, gridResolution);
-	possible_neighbor_indices[1] = gridIndex3Dto1DWithCheck(index_x + sign_x, index_y, index_z
+	possible_neighbor_indices[1] = gridIndex3Dto1DWithCheck(index_x_bigger, index_y_smaller, index_z_smaller
 		, gridResolution);
-	possible_neighbor_indices[2] = gridIndex3Dto1DWithCheck(index_x, index_y + sign_y, index_z
+	possible_neighbor_indices[2] = gridIndex3Dto1DWithCheck(index_x_smaller, index_y_bigger, index_z_smaller
 		, gridResolution);
-	possible_neighbor_indices[3] = gridIndex3Dto1DWithCheck(index_x + sign_x, index_y + sign_y, index_z
+	possible_neighbor_indices[3] = gridIndex3Dto1DWithCheck(index_x_bigger, index_y_bigger, index_z_smaller
 		, gridResolution);
-	possible_neighbor_indices[4] = gridIndex3Dto1DWithCheck(index_x, index_y, index_z + sign_z
+	possible_neighbor_indices[4] = gridIndex3Dto1DWithCheck(index_x_smaller, index_y_smaller, index_z_bigger
 		, gridResolution);
-	possible_neighbor_indices[5] = gridIndex3Dto1DWithCheck(index_x + sign_x, index_y, index_z + sign_z
+	possible_neighbor_indices[5] = gridIndex3Dto1DWithCheck(index_x_bigger, index_y_smaller, index_z_bigger
 		, gridResolution);
-	possible_neighbor_indices[6] = gridIndex3Dto1DWithCheck(index_x, index_y + sign_y, index_z + sign_z
+	possible_neighbor_indices[6] = gridIndex3Dto1DWithCheck(index_x_smaller, index_y_bigger, index_z_bigger
 		, gridResolution);
-	possible_neighbor_indices[7] = gridIndex3Dto1DWithCheck(index_x + sign_x, index_y + sign_y, index_z + sign_z
+	possible_neighbor_indices[7] = gridIndex3Dto1DWithCheck(index_x_bigger, index_y_bigger, index_z_bigger
 		, gridResolution);
 
 	// - For each cell, read the start/end indices in the boid pointer array.
