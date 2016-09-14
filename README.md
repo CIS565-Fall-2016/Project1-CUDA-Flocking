@@ -59,7 +59,7 @@ denser cells, which means that each of the boids in a dense cell needs to loop o
 This means that as the boids group together the running time of the algorithm would tend towards the brute-force
 method.
 
----
+***
 #### 3 - Coherent Data
 These tests were performed with a grid size of 5.0.
 * 5000 - 84 (5s in), 80 (10s in)
