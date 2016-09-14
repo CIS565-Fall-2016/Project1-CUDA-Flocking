@@ -53,7 +53,12 @@ This is the time interval I am trying to show in the results below.
 The metrics below clearly indicate that performace is inversely proportional to the number of boids. This is becuase as the number of boids rises, so does the population density. As a result, each boid will have that many more neighbors for which to calculate the three rules. Moreover, since each boid needs to calculate the effect of every other boid, the impact of increased boids is exponential. 
 
 Interestingly enough, increasing the number of threads per block seems to 
-have generally negatively impacted performance. 
+have improved the performace of the brute force algorithm in the short term, (best time @ 256)
+while generally negatively impacted performance for both uniform grid algorithms (best time @ 128).  
+This might have occurred becuase whereas the brute force implementation's performace relied heavily on computation, 
+since it was doing computation for each boid on every other boid, the grid implementations
+were bottlenecked by memory. Perhaps increasing the number of threads per block allows for more simultaneous computation but also causes more computation for memory bandwidth. This would explain the performace impact well. 
+
 
 Implementing the coherent uniform grid definitely resulted in performace 
 increase. This is the result we expected, since it cuts out a memory
@@ -137,11 +142,11 @@ coherent
 
 256 Threads per Block 
 
-![](images/scatteredblocksize256.PNG)
+![](images/scattteredblocksize256.PNG)
 
 512 Threads per Block 
 
-![](images/scatteredblocksize512.PNG)
+![](images/scattteredblocksize512.PNG)
 
 
 1024 Threads per Block - for reasons unknown, attmpting to lanch the 
