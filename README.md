@@ -87,3 +87,6 @@ For 200,000 boids, for example, it is more than twice as fast as the other algor
 makes sense: removing one level of indirection in each kernel and implementing contiguous memory accesses are small
 efficiencies which add up over time. That is, it only provides major efficiency improvement as the number of 
 memory accesses increases a lot.
+
+#### Notes:
+I changed `CMakeLists.txt` in `/src`, changing the architecture to `-arch=sm_30`.
