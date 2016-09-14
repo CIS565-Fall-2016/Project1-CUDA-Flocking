@@ -29,7 +29,7 @@ the neighboring boids. That is, each thread is looping through the entire array 
 distance from 5.0 to 10.0 had no noticeable effect on this algorithm. That is because it will loop over all of the
  boids regardless of the neighbor distance.
 
----
+***
 #### 2 - Uniform Spatial Grid
 These tests were performed with a grid size of 5.0.
 * 5000 - 81 (5s in), 71 (10s in)
