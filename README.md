@@ -58,8 +58,10 @@ can be sorted in parallel solely by identifing transitions between cells in the 
 
 [Section 3: Performance Analysis](#part-3) outlines the significant performance improvements over the naive solution. It also
 shows a small improvement by adding an additional overhead step to sort the position and velocity arrays directly, rather 
-than doing an array lookup for each update step. This extra step will be refered to as a coherent array, while the unsorted
-position/velocity implementation will be called the scattered array.
+than doing an array lookup for each update step. The idea behind this improvement is to remove the array lookup time required
+when running a loop over all the boids in cell for a single kernel instance, and address the position/velocity vectors directly. 
+This extra step is refered to as a coherent array, while the unsorted position/velocity implementation will be called the 
+scattered array.
 
 <a name="part3"/>
 ## Section 3: Performance Analysis
