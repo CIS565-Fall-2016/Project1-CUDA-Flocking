@@ -26,7 +26,7 @@
 ###Performance Analysis
 
 
-I choose use 1st method : Disable visualization (#define VISUALIZE to 0 ) to  measure performance.
+I choose to use 1st method : Disable visualization (#define VISUALIZE to 0 ) to  measure performance.
 ###Without Visualization
 ####(#define VISUALIZE 0)
 | Algorithm       | Number of boids            | Framerate (FPS) |
@@ -50,6 +50,8 @@ Answer:
 * Brute Force neighbor search algorithm: as the number of boids increases, frame-rate decreases very fast
 * Uniform Grid neighbor search: the number of boids could as many as almost  80000 as the fps keeps at 60, performance is much better than  Brute Force neighbor search algorithm.
 * Coherent Uniform Grid neighbor search: the number of boids could as many as almost  100000 as the fps keeps at 60, performance is much better than Brute Force neighbor search algorithm and little better than Uniform Grid neighbor search.
+
+
 ####2.For each implementation, how does changing the block count and block size affect performance? Why do you think this is?
 
 Answer:
