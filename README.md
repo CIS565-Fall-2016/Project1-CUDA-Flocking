@@ -52,6 +52,9 @@ This is the time interval I am trying to show in the results below.
 
 The metrics below clearly indicate that performace is inversely proportional to the number of boids. This is becuase as the number of boids rises, so does the population density. As a result, each boid will have that many more neighbors for which to calculate the three rules. Moreover, since each boid needs to calculate the effect of every other boid, the impact of increased boids is exponential. 
 
+Interestingly enough, increasing the number of threads per block seems to 
+have generally negatively impacted performance. 
+
 Implementing the coherent uniform grid definitely resulted in performace 
 increase. This is the result we expected, since it cuts out a memory
 access and instead uses a uniform addressing scheme. I found this a bit suprising, since we are still required to do a memory accces, albeit in 
@@ -116,7 +119,36 @@ coherent
 
 ## Block Sizes
 
-To test the effect of block size, I vairied block size by factors of 2, using only the 50,000 boid coherent implementation. I did this because I wanted to attempt to isolate the effects of block size. I realize that boid count is integral to the way the threads are eventually apportioned, and thus this data is incomplete, but this is what time allows. 
+### Naive Implementation
+
+|Threads Per Block| Time Elapsed |  
+|-----------------|--------------|
+|       128       |   11.2 ms    |
+|       256       |    9.6 ms    |
+|       512       |   12.2 ms    | 
+|      1024       |   12.2 ms    | 
+
+
+### Scattered Grid Implementation
+
+128 Threads per Block (same as scattered/50,000 above)
+
+![](images/uniform50_000.PNG)
+
+256 Threads per Block 
+
+![](images/scatteredblocksize256.PNG)
+
+512 Threads per Block 
+
+![](images/scatteredblocksize512.PNG)
+
+
+1024 Threads per Block - for reasons unknown, attmpting to lanch the 
+program with blocksize of 1024 crashed the program at the point where it
+would have done the grid search. 
+
+### Coherent Grid Implementation
 
 128 Threads per Block (same as coherent/50,000 above)
 
@@ -131,9 +163,7 @@ To test the effect of block size, I vairied block size by factors of 2, using on
 ![](images/blocksize512.PNG)
 
 
-1024 Threads per Block - for reasons unknown, attmpting to lanch the 
-program with blocksize of 1024 crashed the program at the point where it
-would have done the coherent grid search. 
+1024 Threads per Block - Crashed, as in scattered implementation.
 
 # Big Bugs
 
@@ -143,6 +173,6 @@ would have done the coherent grid search.
 
 My coherent grid search had a bug where, instead of moving away from neighbors as per rule 2, it would gravitate toward them. This resulted in some boids clumping and as they moved around, would suck in any boids that came within their rule2Distance event Horizon.
 
-## Boid out of Hell
+## Boid outta Hell
 
 Due to a faulty type delaration, boids which were being set with their own vlaues were getting high nigative values, most likely resulting from implicit float to int cast. This resulted in red boids zipping around on the top of the scene like embers above a fire. 
