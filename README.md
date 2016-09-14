@@ -9,7 +9,7 @@ Project 1 - Flocking**
 ### Performance Analysis
 
 Data is in the form: __# of points - frames per second__
-##### 1 - Brute Force
+#### 1 - Brute Force
 These tests were performed with a grid size of 5.0. 
 * 5000 - 43 (5s in) - 44 (10s in)
 * 7500 - 20.5 (5s in) - 21.0 (10s in)
@@ -27,9 +27,10 @@ decay over time, however, with most of the 5-10 second intervals staying around 
 because each thread is doing pretty much the same number of calculations regardless of the positions of 
 the neighboring boids. That is, each thread is looping through the entire array of boids. Changing the neighbor
 distance from 5.0 to 10.0 had no noticeable effect on this algorithm. That is because it will loop over all of the
-boids regardless of the neighbor distance.
+ boids regardless of the neighbor distance.
+
 ---
-##### 2 - Uniform Spatial Grid
+#### 2 - Uniform Spatial Grid
 These tests were performed with a grid size of 5.0.
 * 5000 - 81 (5s in), 71 (10s in)
 * 7500 - 54 (5s), 48 (10s in)
@@ -57,8 +58,9 @@ the speed of the program with regard to time. I think this is because as the boi
 denser cells, which means that each of the boids in a dense cell needs to loop over the other boids in that cell.
 This means that as the boids group together the running time of the algorithm would tend towards the brute-force
 method.
+
 ---
-##### 3 - Coherent Data
+#### 3 - Coherent Data
 These tests were performed with a grid size of 5.0.
 * 5000 - 84 (5s in), 80 (10s in)
 * 7500 - 55 (5s in), 54 (10s in)
