@@ -40,7 +40,7 @@ This project implemented three different algorithms for flocking behavior in CUD
 
 For each implmentation, as the number of boids increases, there is a big drop in performance. This is due to the fact that for each boid's velocity computation, we need loop through a list of potential neighbors that can affect the boid. The biggest optimization made in each implementation is a improvement on how efficient we can iterate through these neighbors by partitioning them into a uniform grid and rearrange their data in a coherent memory.
 
-[insert]
+![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/charts/coherent_performance.png "Coherent uniform grid performance")
 
 Changing the block size increases the number of threads per block. This only affects the performance of the coherent uniform grid implementation. I belive this is due to the fact that more threads can now access data sequentially in a shared warp compared to the other implementations. Increasing the number of block count seems to have the opposite effect as it reduces the number of threads per block instead and data are more scattered through more blocks in memory now.
 
