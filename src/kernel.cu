@@ -437,44 +437,6 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
 
 }
 
-
-__global__ void kernIdentifyCellStartEndCoherent(int N, int *particleGridIndices,
-	int *particleArrayIndices, int *gridCellStartIndices, int *gridCellEndIndices) {
-	// TODO-2.1
-	// Identify the start point of each cell in the gridIndices array.
-	// This is basically a parallel unrolling of a loop that goes
-	// "this index doesn't match the one before it, must be a new cell!"
-
-	int index = threadIdx.x + (blockIdx.x * blockDim.x);
-	if (index >= N) {
-		return;
-	}
-
-	int Cell = particleGridIndices[index];
-	index = particleArrayIndices[index];
-
-	if (index <= 0)	{
-		gridCellStartIndices[Cell] = index;
-
-		if (particleGridIndices[index + 1] != Cell)
-			gridCellEndIndices[Cell] = index;
-	}
-	else if (index >= (N - 1)) {
-		if (particleGridIndices[index - 1] != Cell)
-			gridCellStartIndices[Cell] = index;
-
-		gridCellEndIndices[Cell] = index;
-	}
-	else {
-		if (particleGridIndices[index - 1] != Cell)
-			gridCellStartIndices[Cell] = index;
-
-		if (particleGridIndices[index + 1] != Cell)
-			gridCellEndIndices[Cell] = index;
-	}
-
-}
-
 /**
 * Helper function to find neighboring grid cells to search
 */
