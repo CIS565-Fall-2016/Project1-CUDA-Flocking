@@ -41,7 +41,7 @@ void checkCUDAError(const char *msg, int line = -1) {
 
 // LOOK-1.2 Parameters for the boids algorithm.
 // These worked well in our reference implementation.
-#define rule1Distance 5.0f
+#define rule1Distance 50.0f
 #define rule2Distance 3.0f
 #define rule3Distance 5.0f
 
@@ -419,6 +419,7 @@ __device__ void getSpeedBasedOnNeighborGridScattered(int gridIndex, int currentP
 }
 */
 
+/*
 // ADD-2.3 when we get the neighbor cells' indices, we could only calculate speed with in this area
 // Change Scattered to Coherent
 __device__ void getSpeedBasedOnNeighborGridCoherent(int gridIndex, int currentParticleIndex, int* gridCellStartIndices, int* gridCellEndIndices,
@@ -445,7 +446,7 @@ __device__ void getSpeedBasedOnNeighborGridCoherent(int gridIndex, int currentPa
 		}
 	}
 } 
-
+*/
 
 
 __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
@@ -645,12 +646,34 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 	glm::vec3 overallAlignment(0.f, 0.f, 0.f);    // Rule 3
 
 	for (int i = 0; i <= 7; i++) {
-		if (gridCellNeighborsIndex[i] < 0 || gridCellNeighborsIndex[i] > gridCount) {
+		if (gridCellNeighborsIndex[i] < 0 || gridCellNeighborsIndex[i] >= gridCount) {
 			continue;
 		}
-		getSpeedBasedOnNeighborGridCoherent(gridCellNeighborsIndex[i], index, gridCellStartIndices, gridCellEndIndices,
+		//reference seems not correct.
+		//OK I'll move the helper function's code here
+		if (gridCellStartIndices[gridCellNeighborsIndex[i]] != -1 && gridCellEndIndices[gridCellNeighborsIndex[i]] != -1) {
+			for (int j = gridCellStartIndices[gridCellNeighborsIndex[i]]; j <= gridCellEndIndices[gridCellNeighborsIndex[i]]; j++) {
+				if (index != j) {
+					glm::vec3 vectorBetweenTwoBoids = pos[j] - pos[index];
+					float distanceBetweenTwoBoids = glm::length(vectorBetweenTwoBoids);
+					if (distanceBetweenTwoBoids < rule1Distance) {
+						overallCenterOfMass += pos[j];
+						neighborOfCountRule1 += 1.f;
+					}
+					if (distanceBetweenTwoBoids < rule2Distance) {
+						overallSeperation -= vectorBetweenTwoBoids;
+					}
+					if (distanceBetweenTwoBoids < rule3Distance) {
+						overallAlignment += vel1[j];
+						neighborOfCountRule3 += 1.f;
+					}
+				}
+			}
+		}
+	/*	getSpeedBasedOnNeighborGridCoherent(gridCellNeighborsIndex[i], index, gridCellStartIndices, gridCellEndIndices,
 			pos, vel1, overallCenterOfMass, overallSeperation,
-			overallAlignment, neighborOfCountRule1, neighborOfCountRule3);
+			overallAlignment, neighborOfCountRule1, neighborOfCountRule3); 
+			*/
 	}
 
 	if (neighborOfCountRule1 > 0) {
@@ -769,16 +792,20 @@ void Boids::stepSimulationCoherentGrid(float dt) {
 	
 	// - Perform velocity updates using neighbor search
 	kernUpdateVelNeighborSearchCoherent << < fullBlocksPerGrid, blockSize >> > (numObjects, gridSideCount, gridMinimum, gridInverseCellWidth, gridCellWidth,
-		dev_gridCellStartIndices, dev_gridCellEndIndices, dev_pos, dev_vel1, dev_vel2);
+		dev_gridCellStartIndices, dev_gridCellEndIndices, dev_posAfterShuffle, dev_velAfterShuffle, dev_vel2);
 
 	// - Update positions
-	kernUpdatePos << <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_pos, dev_vel2);
+	kernUpdatePos << <fullBlocksPerGrid, blockSize >> >(numObjects, dt, dev_posAfterShuffle, dev_vel2);
 
 	// - Ping-pong buffers as needed. THIS MAY BE DIFFERENT FROM BEFORE.
 	// No vel1 & vel2 here, so swap is different
-	glm::vec3 * tempPos = dev_pos;
-	dev_pos = dev_posAfterShuffle;
-	dev_posAfterShuffle = tempPos;
+	glm::vec3 * tempPos = dev_posAfterShuffle;
+	dev_posAfterShuffle = dev_pos;
+	dev_pos = tempPos;
+
+	glm::vec3 * tempVel = dev_vel2;
+	dev_vel2 = dev_vel1;
+	dev_vel1 = tempVel;
 
 }
 
