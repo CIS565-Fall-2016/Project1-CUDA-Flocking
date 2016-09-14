@@ -22,10 +22,17 @@ In order to analyse the performance of our implementation, we will be using the 
 
 In the graph above, it is clear that the brute force method performs the worst. This is because the number of comparisons for each boid increases linearly with the number of boids. The scattered uniform grid performs much better as it drastically reduces the number of comparisons needed for each boid. What's surprising is the dramatic increase in performance for the uniform grid! Even though both the coherent and scattered grid make the same number of comparisons, the difference in performance is similar to that between the scattered grid and the brute force method.  The only change is that we remove the use of an intermediate array for grid indexing. This suggests that reading from memory is a significant bottleneck in our GPU implementations.
 
-### Block Size ###
-We might also be interested in the performance of our implementations for varying block sizes on the GPU. Below we see that performance is roughly equivalent for each implementation. This makes sense as varying the block sizes doesn't necessarily change the number of threads allocated for the whole calculation and each boid has an independent calculation.
+### Block Size and Count###
+We might also be interested in the performance of our implementations for varying block sizes on the GPU. Below we see that performance is roughly equivalent for each implementation. This makes sense as increasing the block sizes (and thereby decreasing block count) doesn't necessarily change the number of threads allocated for the whole calculation and each boid has an independent calculation. These graphs were generated using a coherent grid with 16000 boids.
 
 ![FPSvBlockSize](https://github.com/xnieamo/Project1-CUDA-Flocking/blob/master/images/PerformanceVBlockSize.png)
+
+### dT ###
+What's somewhat surprising is that changing the time step parameter, dT, also affects performance. As you increase dT, performance increases drastically as shown in the graph below. This is possibly related to the fact that at high dT, all the boids are automatically placed into 1 giant flock. This graph is generated using a coherent grid with 16000 boids.
+
+![FPSvdT](https://github.com/xnieamo/Project1-CUDA-Flocking/blob/master/images/PerformanceVdt.png)
+
+
 
 
 
