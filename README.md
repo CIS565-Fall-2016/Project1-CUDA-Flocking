@@ -47,10 +47,13 @@ of cache for each thread/ALU, fetching data via pointers causes frequent jumping
 Changing the blocksize slightly influence the performance for the three implementations; the uniform grid methods are less sensitive to blocksize change. 
 This is most likely due to that despite the change of the blocksize, no threads is dependent on/ waiting for other threads to finish.
 
-* Three more plots showing the performance analysis (using Nsight) (5000 particles, 128 blocks)
+ Three more plots showing the performance analysis (using Nsight) (5000 particles, 128 blocks)
 * Performance analysis of Naive search
 ![](images/5000-naive.JPG)
 * Performance analysis of Scattered Uniform Grid
 ![](images/5000-scattered.JPG)
 * Performance analysis of Coherent Uniform Grid
 ![](images/5000-coherent.JPG)
+
+### Build
+Please follow the instructions here: https://github.com/CIS565-Fall-2016/Project0-CUDA-Getting-Started/blob/master/INSTRUCTION.md
