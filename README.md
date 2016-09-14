@@ -10,7 +10,7 @@ Project 1 - Flocking**
 
 This project implemented three different algorithms for flocking behavior in CUDA: brute-force, uniform grid, coherent uniform grid.
 
-[insert gif here]
+![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/screenshots/Uniform_5000_boids.gif "Flocking simulation")
 
 **---- General information for CUDA device ----**
 - Device name: GeForce GTX 980 Ti
