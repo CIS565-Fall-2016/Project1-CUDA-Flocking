@@ -68,8 +68,8 @@ Performance was tested relative to the number of boids in a cube with edge lengt
 
 Reducing the search space with a uniform grid shows significant improvements over the naive solution. Experiments show that
 this implementation scales exponentially, as expected since complexity os O(n^2). The uniform grid implementation shows much 
-better scaling as the number of boids increases, with the most significant improvement at 20,000 boids, which is the largest 
-amount tested. The additional position/velocity sorting shows about 20% improvement in tests with significantly more boids 
+better scaling as the number of boids increases, with the most significant improvement at 30,000 boids, which is the largest 
+amount tested. The additional position/velocity sorting shows 20% to 30% improvement in tests with significantly more boids 
 than cells.
 
 ![Performance of Naive vs. Discrete Grid Perofmrance](images/performance.png)
