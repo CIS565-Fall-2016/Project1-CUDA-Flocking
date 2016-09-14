@@ -41,7 +41,7 @@ void checkCUDAError(const char *msg, int line = -1) {
 
 // LOOK-1.2 Parameters for the boids algorithm.
 // These worked well in our reference implementation.
-#define rule1Distance 50.0f
+#define rule1Distance 5.0f
 #define rule2Distance 3.0f
 #define rule3Distance 5.0f
 
