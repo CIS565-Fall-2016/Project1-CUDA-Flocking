@@ -13,12 +13,12 @@
 // ================
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
-#define VISUALIZE 1
-#define UNIFORM_GRID 0
-#define COHERENT_GRID 0
+#define VISUALIZE 0
+#define UNIFORM_GRID 1
+#define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 50000;
 const float DT = 0.2f;
 
 /**
@@ -247,7 +247,7 @@ void printCudaDeviceProperties()
   //====================================
   // Main loop
   //====================================
-  void runCUDA() {
+  float runCUDA() {
     // Map OpenGL buffer object for writing from CUDA on a single GPU
     // No data is moved (Win & Linux). When mapped to CUDA, OpenGL should not
     // use this buffer
@@ -259,7 +259,12 @@ void printCudaDeviceProperties()
     cudaGLMapBufferObject((void**)&dptrVertPositions, boidVBO_positions);
     cudaGLMapBufferObject((void**)&dptrVertVelocities, boidVBO_velocities);
 
+    // Record cuda simulation
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
     // execute the kernel
+    cudaEventRecord(start);
     #if UNIFORM_GRID && COHERENT_GRID
     Boids::stepSimulationCoherentGrid(DT);
     #elif UNIFORM_GRID
@@ -267,6 +272,11 @@ void printCudaDeviceProperties()
     #else
     Boids::stepSimulationNaive(DT);
     #endif
+    cudaEventRecord(stop);
+
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
 
     #if VISUALIZE
     Boids::copyBoidsToVBO(dptrVertPositions, dptrVertVelocities);
@@ -274,6 +284,8 @@ void printCudaDeviceProperties()
     // unmap buffer object
     cudaGLUnmapBufferObject(boidVBO_positions);
     cudaGLUnmapBufferObject(boidVBO_velocities);
+
+    return milliseconds;
   }
 
   void mainLoop() {
@@ -296,13 +308,14 @@ void printCudaDeviceProperties()
         frame = 0;
       }
 
-      runCUDA();
+      float simulationTimeMs = runCUDA();
 
       std::ostringstream ss;
       ss << "[";
       ss.precision(1);
       ss << std::fixed << fps;
-      ss << " fps] " << deviceName;
+      ss << " fps] " << "[" << simulationTimeMs << " ms/frame]";
+      ss << deviceName;
       glfwSetWindowTitle(window, ss.str().c_str());
 
       glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
