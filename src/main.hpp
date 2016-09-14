@@ -13,7 +13,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include "utilityCore.hpp"
 #include "glslUtility.hpp"
+//#include "stdafx.h"
 #include "kernel.h"
+
 
 //====================================
 // GL Stuff
