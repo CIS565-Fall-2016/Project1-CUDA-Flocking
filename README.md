@@ -2,7 +2,7 @@
 Project 1 - Flocking**
 
 * Trung Le
-* Windows 10 Home, i7-4790 CPU @ 3.60GHz 12GB, GTX 980 Ti (Person desktop)
+* Windows 10 Home, i7-4790 CPU @ 3.60GHz 12GB, GTX 980 Ti (Personal desktop)
 
 ### Flocking
 
@@ -46,4 +46,4 @@ Changing the block size increases the number of threads per block. This only aff
 
 For the coherent uniform grid, I did see a great performance improvements as the number of boids increases up to 100000 and more. At this point, we immediately see the coherent data pays off. From my performance analysis, I observed that at 150000 boids, coherent uniform grid is ~400ms faster than scattered uniform grid. This is a big improvement!
 
-[insert]
+![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/charts/coherent_vs_uniform.png "Coherent vs scattered uniform grid performance")
