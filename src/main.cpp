@@ -13,12 +13,12 @@
 // ================
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
-#define VISUALIZE 1
-#define UNIFORM_GRID 0
-#define COHERENT_GRID 0
+#define VISUALIZE 0
+#define UNIFORM_GRID 1
+#define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 10000;
 const float DT = 0.2f;
 
 /**
@@ -222,7 +222,7 @@ void initShaders(GLuint * program) {
 
     Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
-
+	FILE* fp = fopen("sss.txt", "w");
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
@@ -232,9 +232,16 @@ void initShaders(GLuint * program) {
       if (time - timebase > 1.0) {
         fps = frame / (time - timebase);
         timebase = time;
+		if (time < 120)
+		{
+			fprintf(fp, "%lf\n", fps);
+			
+		}
+		else
+			break;
         frame = 0;
       }
-
+	  
       runCUDA();
 
       std::ostringstream ss;
@@ -259,6 +266,7 @@ void initShaders(GLuint * program) {
       glfwSwapBuffers(window);
       #endif
     }
+	fclose(fp);
     glfwDestroyWindow(window);
     glfwTerminate();
   }
@@ -284,12 +292,12 @@ void initShaders(GLuint * program) {
       // compute new camera parameters
       phi += (xpos - lastX) / width;
       theta -= (ypos - lastY) / height;
-      theta = std::fmax(0.01f, std::fmin(theta, 3.14f));
+      theta = std::max(0.01f, std::min(theta, 3.14f));
       updateCamera();
     }
     else if (rightMousePressed) {
       zoom += (ypos - lastY) / height;
-      zoom = std::fmax(0.1f, std::fmin(zoom, 5.0f));
+      zoom = std::max(0.1f, std::min(zoom, 5.0f));
       updateCamera();
     }
 
