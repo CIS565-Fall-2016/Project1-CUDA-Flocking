@@ -32,6 +32,8 @@ What's somewhat surprising is that changing the time step parameter, dT, also af
 
 ![FPSvdT](https://github.com/xnieamo/Project1-CUDA-Flocking/blob/master/images/PerformanceVdt.png)
 
+![FastFlock](https://github.com/xnieamo/Project1-CUDA-Flocking/blob/master/images/dt1.6_particles16000.gif)
+
 
 
 
