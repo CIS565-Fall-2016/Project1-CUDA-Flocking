@@ -57,3 +57,5 @@ This is most likely due to that despite the change of the blocksize, no threads 
 
 ### Build
 Please follow the instructions here: https://github.com/CIS565-Fall-2016/Project0-CUDA-Getting-Started/blob/master/INSTRUCTION.md
+
+Note: CMakeLists.txt has been modified : 20ms --> 30ms
