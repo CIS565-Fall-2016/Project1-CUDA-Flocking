@@ -49,7 +49,8 @@ Answer:
 
 * Brute Force neighbor search algorithm: as the number of boids increases, frame-rate decreases very fast
 * Uniform Grid neighbor search: the number of boids could as many as almost  80000 as the fps keeps at 60, performance is much better than  Brute Force neighbor search algorithm.
-* Coherent Uniform Grid neighbor search: the number of boids could as many as almost  100000 as the fps keeps at 60, performance is much better than Brute Force neighbor search algorithm and little better than Uniform Grid neighbor search.
+* Coherent Uniform Grid neighbor search: the number of boids could as many as almost 100000 as the fps keeps at 60, performance is much better than Brute Force neighbor search algorithm and a little better than Uniform Grid neighbor search.
+
 
 
 ####2.For each implementation, how does changing the block count and block size affect performance? Why do you think this is?
@@ -57,7 +58,7 @@ Answer:
 Answer:
 
 * Generally speaking, when block count decreases and block size increases , the performance will be better.
-* But in order to get a great performance, we should balance between block count and block size, and set their value wisely in order to improve memory perfomance.
+* But in order to get a great performance, we should make a balance between block count and block size, and set their value wisely in order to improve memory performance.
 
 ####3. For the coherent uniform grid: did you experience any performance improvements with the more coherent uniform grid? Was this the outcome you expected? Why or why not?
 Answer:
