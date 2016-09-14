@@ -5,5 +5,10 @@
 
 <div style="text-align:center"><img src ="https://github.com/xnieamo/Project1-CUDA-Flocking/blob/master/images/dt0.2_particles16000.gif" /></div>
 
-Include screenshots, analysis, etc. (Remember, this is public, so don't put
-anything here that you don't want to share with the world.)
+Above is a gif generated using the code in this repo with 16000 boids using the coherent grid implementation.
+
+### Quick Note ###
+Before running any of the code in this repo, it is possible that you may have to adjust the compute capability flag in `scr/CMakeLists.txt`. To do so, change the '-arch=sm_30' to match your compute capability. 20 matches to 2.0, 30 to 3.0, etc.
+
+## Performance Analysis ##
+
