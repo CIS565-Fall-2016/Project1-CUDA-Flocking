@@ -4,6 +4,8 @@ Project 1 - Flocking**
 * Ottavio Hartman
 * Tested on: Windows 7, i7-4790 @ 3.60GHz 16GB, Quadro K420 (Moore 102 Lab)
 
+![alt text]("https://github.com/omh1280/Project1-CUDA-Flocking/raw/master/images/Capture.PNG")
+
 ### Performance Analysis
 
 Data is in the form: __# of points - frames per second__
