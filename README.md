@@ -26,6 +26,7 @@ These simple rules with the appropriate tuning parameter set can lead to a surpr
 behavior very similar to how schools of fish or flocks of birds move in nature, as seen below.
 
 ![Flocking Simulation with Grid Pruning](images/uniform_5000.gif)
+*Boid Flocking Simulation*
 
 <a name="part1"/>
 ## Section 1: Naive Solution
@@ -79,6 +80,9 @@ Development of the coherent grid involved several development bugs. The first se
 both the position and velocity arrays directly with replacement on the original array. This showed an interesting artifact
 where the general boid flocking behavior was mostly intact in two dimensions, but boids seemed to align along the third 
 (shown below).
+
+![Buffer Overwrite Failure](images/uniform_5000_fail1.gif)
+*Failure From Overwiting initial Position/Velocity Arrays*
 
 Originally I had determined that the cause was due to sorting the position and velocity frames prior to binning the boids
 into their respective cells. Switching the order of these steps at first glance seems to solve the behavior. However, after
