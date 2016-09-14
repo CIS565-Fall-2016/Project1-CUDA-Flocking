@@ -390,55 +390,62 @@ __global__ void kernResetIntBuffer(int N, int *intBuffer, int value) {
   }
 }
 
+/*
 // ADD-2.1 when we get the neighbor cells' indices, we could only calculate speed with in this area
 __device__ void getSpeedBasedOnNeighborGridScattered(int gridIndex, int currentParticleIndex, int* gridCellStartIndices, int* gridCellEndIndices, int* particleArrayIndices,
 	glm::vec3* pos, glm::vec3* vel, glm::vec3& overallCenterOfMass, glm::vec3& overallSeperation, 
 	glm::vec3& overallAlignment, float& neighborOfCountRule1, float& neighborOfCountRule3) {
-
-	for (int i = gridCellStartIndices[gridIndex]; i <= gridCellEndIndices[gridIndex]; i++) {
-		if (currentParticleIndex = particleArrayIndices[i]) {
-			continue;
-		}
-		glm::vec3 vectorBetweenTwoBoids(pos[particleArrayIndices[i]] - pos[currentParticleIndex]);
-		float distanceBetweenTwoBoids = glm::length(vectorBetweenTwoBoids);
-		if (distanceBetweenTwoBoids < rule1Distance) {
-			overallCenterOfMass += pos[particleArrayIndices[i]];
-			neighborOfCountRule1 += 1.f;
-		}
-		if (distanceBetweenTwoBoids < rule2Distance) {
-			overallSeperation -= vectorBetweenTwoBoids;
-		}
-		if (distanceBetweenTwoBoids < rule3Distance) {
-			overallAlignment += vel[particleArrayIndices[i]];
-			neighborOfCountRule3 += 1.f;
+//Maybe I did not consider NULL grids? 
+	if (gridCellStartIndices[gridIndex] != -1 && gridCellEndIndices[gridIndex] != -1) {
+		for (int i = gridCellStartIndices[gridIndex]; i <= gridCellEndIndices[gridIndex]; i++) {
+			if (currentParticleIndex = particleArrayIndices[i]) {
+				continue;
+			}
+			glm::vec3 vectorBetweenTwoBoids(pos[particleArrayIndices[i]] - pos[currentParticleIndex]);
+			float distanceBetweenTwoBoids = glm::length(vectorBetweenTwoBoids);
+			if (distanceBetweenTwoBoids < rule1Distance) {
+				overallCenterOfMass += pos[particleArrayIndices[i]];
+				neighborOfCountRule1 += 1.f;
+			}
+			if (distanceBetweenTwoBoids < rule2Distance) {
+				overallSeperation -= vectorBetweenTwoBoids;
+			}
+			if (distanceBetweenTwoBoids < rule3Distance) {
+				overallAlignment += vel[particleArrayIndices[i]];
+				neighborOfCountRule3 += 1.f;
+			}
 		}
 	}
 }
+*/
 
 // ADD-2.3 when we get the neighbor cells' indices, we could only calculate speed with in this area
 // Change Scattered to Coherent
 __device__ void getSpeedBasedOnNeighborGridCoherent(int gridIndex, int currentParticleIndex, int* gridCellStartIndices, int* gridCellEndIndices,
 	glm::vec3* pos, glm::vec3* vel, glm::vec3& overallCenterOfMass, glm::vec3& overallSeperation,
 	glm::vec3& overallAlignment, float& neighborOfCountRule1, float& neighborOfCountRule3) {
-	for (int i = gridCellStartIndices[gridIndex]; i <= gridCellEndIndices[gridIndex]; i++) {
-		if (currentParticleIndex = i) {
-			continue;
-		}
-		glm::vec3 vectorBetweenTwoBoids(pos[i] - pos[currentParticleIndex]);
-		float distanceBetweenTwoBoids = glm::length(vectorBetweenTwoBoids);
-		if (distanceBetweenTwoBoids < rule1Distance) {
-			overallCenterOfMass += pos[i];
-			neighborOfCountRule1 += 1.f;
-		}
-		if (distanceBetweenTwoBoids < rule2Distance) {
-			overallSeperation -= vectorBetweenTwoBoids;
-		}
-		if (distanceBetweenTwoBoids < rule3Distance) {
-			overallAlignment += vel[i];
-			neighborOfCountRule3 += 1.f;
+	if (gridCellStartIndices[gridIndex] != -1 && gridCellEndIndices[gridIndex] != -1) {
+		for (int i = gridCellStartIndices[gridIndex]; i <= gridCellEndIndices[gridIndex]; i++) {
+			if (currentParticleIndex = i) {
+				continue;
+			}
+			glm::vec3 vectorBetweenTwoBoids(pos[i] - pos[currentParticleIndex]);
+			float distanceBetweenTwoBoids = glm::length(vectorBetweenTwoBoids);
+			if (distanceBetweenTwoBoids < rule1Distance) {
+				overallCenterOfMass += pos[i];
+				neighborOfCountRule1 += 1.f;
+			}
+			if (distanceBetweenTwoBoids < rule2Distance) {
+				overallSeperation -= vectorBetweenTwoBoids;
+			}
+			if (distanceBetweenTwoBoids < rule3Distance) {
+				overallAlignment += vel[i];
+				neighborOfCountRule3 += 1.f;
+			}
 		}
 	}
-}
+} 
+
 
 
 __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
@@ -511,29 +518,52 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	gridCellNeighborsIndex[7] = gridIndex3Dto1D(x, y, z + deltaZ, gridResolution);
 
 	int gridCount = gridResolution * gridResolution * gridResolution;
-	glm::vec3 finalVel(vel1[particleIndex]);
-	float neighborOfCountRule1 = 0;
-	float neighborOfCountRule3 = 0;
+	glm::vec3 finalVel = vel1[particleIndex];
+	float neighborOfCountRule1 = 0.f;
+	float neighborOfCountRule3 = 0.f;
 	glm::vec3 overallCenterOfMass(0.f, 0.f, 0.f); // Rule 1
 	glm::vec3 overallSeperation(0.f, 0.f, 0.f);   // Rule 2
 	glm::vec3 overallAlignment(0.f, 0.f, 0.f);    // Rule 3
 
 	for (int i = 0; i <= 7; i++) {
-		if (gridCellNeighborsIndex[i] < 0 || gridCellNeighborsIndex[i] > gridCount) {
+		if (gridCellNeighborsIndex[i] < 0 || gridCellNeighborsIndex[i] >= gridCount) {
 			continue;
 		}
-		getSpeedBasedOnNeighborGridScattered(gridCellNeighborsIndex[i], particleIndex, gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
+		//reference seems not correct.
+		//OK I'll move the helper function's code here
+		if (gridCellStartIndices[gridCellNeighborsIndex[i]] != -1 && gridCellEndIndices[gridCellNeighborsIndex[i]] != -1) {
+			for (int j = gridCellStartIndices[gridCellNeighborsIndex[i]]; j <= gridCellEndIndices[gridCellNeighborsIndex[i]]; j++) {
+				if (particleIndex != particleArrayIndices[j]) {
+					glm::vec3 vectorBetweenTwoBoids = pos[particleArrayIndices[j]] - pos[particleIndex];
+					float distanceBetweenTwoBoids = glm::length(vectorBetweenTwoBoids);
+					if (distanceBetweenTwoBoids < rule1Distance) {
+						overallCenterOfMass += pos[particleArrayIndices[j]];
+						neighborOfCountRule1 += 1.f;
+					}
+					if (distanceBetweenTwoBoids < rule2Distance) {
+						overallSeperation -= vectorBetweenTwoBoids;
+					}
+					if (distanceBetweenTwoBoids < rule3Distance) {
+						overallAlignment += vel1[particleArrayIndices[j]];
+						neighborOfCountRule3 += 1.f;
+					}
+				}
+			}
+		}
+
+	/*	getSpeedBasedOnNeighborGridScattered(gridCellNeighborsIndex[i], particleIndex, gridCellStartIndices, gridCellEndIndices, particleArrayIndices,
 			pos, vel1, overallCenterOfMass, overallSeperation,
 			overallAlignment, neighborOfCountRule1, neighborOfCountRule3);
+	*/
 	}
 
-	if (neighborOfCountRule1 > 0) {
+	if ((int)neighborOfCountRule1 > 0) {
 		overallCenterOfMass = overallCenterOfMass / neighborOfCountRule1;
 		finalVel += (overallCenterOfMass - pos[particleIndex]) * rule1Scale;
 	}
-
+//	printf("%d ", neighborOfCountRule1);
 	// Rule 3
-	if (neighborOfCountRule3 > 0) {
+	if ((int)neighborOfCountRule3 > 0) {
 		overallAlignment = overallAlignment / neighborOfCountRule3;
 		finalVel += (overallAlignment - vel1[particleIndex]) * rule3Scale;
 	}
