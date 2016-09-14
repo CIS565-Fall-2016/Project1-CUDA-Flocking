@@ -5,7 +5,7 @@
 * @date      2013-2016
 * @copyright University of Pennsylvania
 */
-#include "stdafx.h"
+//#include "stdafx.h"
 #include "main.hpp"
 #include <math.h>
 #include <algorithm>
@@ -19,7 +19,7 @@
 #define COHERENT_GRID 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 50000;
+const int N_FOR_VIS = 5000;
 const float DT = 0.2f;
 
 /**
@@ -220,14 +220,15 @@ void initShaders(GLuint * program) {
     double fps = 0;
     double timebase = 0;
     int frame = 0;
-
+	int totalframe=0;
+	double time0 = glfwGetTime();
     Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
-                       // your CUDA development setup is ready to go.
-
+                       // your CUDA development setup is ready to go. 
     while (!glfwWindowShouldClose(window)) {
       glfwPollEvents();
 
       frame++;
+	  totalframe++;
       double time = glfwGetTime();
 
       if (time - timebase > 1.0) {
@@ -235,6 +236,10 @@ void initShaders(GLuint * program) {
         timebase = time;
         frame = 0;
       }
+
+	  //if ((time - time0)>10){
+		 // std::cout<<(double)(time - time0)/totalframe<<std::endl;
+	  //}
 
       runCUDA();
 
