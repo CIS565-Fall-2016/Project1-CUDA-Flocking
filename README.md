@@ -31,10 +31,10 @@ I implemented flocking simulation (Boids) using three different neighbor searchi
 
 
 #### Performance
-    | Particle Count|5000|10000|20000|40000|80k|160k|320k|640k|1280k
-    | ------------- |-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
-    | Brute-force FPS|591.5|242.1|52.5|14.5|4.2|||||
-    | Scattered Grid FPS|||1103.8|1072|662.1|344.7|121.5|37.2|10.9
-    | Coherent Grid  FPS|||1069.1|1082.4|761.8|468.9|191.3|63.5|17.9
+| Particle Count|5000|10000|20000|40000|80k|160k|320k|640k|1280k
+| ------------- |-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|-----:|
+| Brute-force FPS|591.5|242.1|52.5|14.5|4.2|||||
+| Scattered Grid FPS|||1103.8|1072|662.1|344.7|121.5|37.2|10.9
+| Coherent Grid  FPS|||1069.1|1082.4|761.8|468.9|191.3|63.5|17.9
 
-    Data for the performance impact of block size was left on the lab machine... Will retrieve it later.
+Data for the performance impact of block size was left on the lab machine... Will retrieve it later.
