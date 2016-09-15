@@ -39,7 +39,7 @@ void checkCUDAError(const char *msg, int line = -1) {
 *****************/
 
 /*! Block size used for CUDA kernel launch. */
-#define blockSize 512
+#define blockSize 128
 
 // LOOK-1.2 Parameters for the boids algorithm.
 // These worked well in our reference implementation.
@@ -185,8 +185,8 @@ void Boids::initSimulation(int N) {
 
   // LOOK-2.1 computing grid params
   gridCellWidth = 2.0f * std::max(std::max(rule1Distance, rule2Distance), rule3Distance);
-  gridSideCount = (int)(scene_scale / gridCellWidth);
-  int halfSideCount = gridSideCount / 2;
+  int halfSideCount = (int)(scene_scale / gridCellWidth) + 1;
+  gridSideCount = halfSideCount * 2;
 
   gridCellCount = gridSideCount * gridSideCount * gridSideCount;
   gridInverseCellWidth = 1.0f / gridCellWidth;
@@ -392,9 +392,9 @@ __global__ void kernComputeIndices(int N, int gridResolution,
     indices[index] = index;
 
     // Compute the 3D grid indices for this particle
-    int gridX = (pos[index].x - gridMin.x) * inverseCellWidth;
-    int gridY = (pos[index].y - gridMin.y) * inverseCellWidth;
-    int gridZ = (pos[index].z - gridMin.z) * inverseCellWidth;
+    int gridX = (int)((pos[index].x - gridMin.x) * inverseCellWidth);
+    int gridY = (int)((pos[index].y - gridMin.y) * inverseCellWidth);
+    int gridZ = (int)((pos[index].z - gridMin.z) * inverseCellWidth);
 
     // Convert and store the 1D grid index
     gridIndices[index] = gridIndex3Dto1D(gridX, gridY, gridZ, gridResolution);
@@ -418,24 +418,25 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
   // "this index doesn't match the one before it, must be a new cell!"
 
   int index = (blockIdx.x * blockDim.x) + threadIdx.x;
+  if (index > N) {
+    return;
+  }
+
   int cellIndex = particleGridIndices[index];
-
-  int prevCellIndex = particleGridIndices[index - 1 >= 0 ? index - 1 : index];
-  int nextCellIndex = particleGridIndices[index + 1 < N ? index + 1 : index];
-
-  if (cellIndex != prevCellIndex) {
-    gridCellStartIndices[cellIndex] = index;
-  }
-
-  if (cellIndex != nextCellIndex) {
-    gridCellEndIndices[cellIndex] = index;
-  }
-
   if (index == 0) {
     gridCellStartIndices[cellIndex] = 0;
+    return;
   }
+
   if (index == N - 1) {
-    gridCellEndIndices[cellIndex] = index;
+    gridCellEndIndices[cellIndex] = N - 1;
+  }
+
+  int prevCellIndex = particleGridIndices[index - 1];
+  if (cellIndex != prevCellIndex)
+  {
+    gridCellStartIndices[cellIndex] = index;
+    gridCellEndIndices[prevCellIndex] = index - 1;
   }
 }
 
@@ -467,7 +468,7 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 
     // Find the other 8 neiboring cells based on which octant the particle is in
   glm::vec3 distanceToNeighbor = 
-    pos[boidIndex] - (grid3DIndex * cellWidth + gridMin);
+    pos[boidIndex] - (glm::vec3((int)grid3DIndex.x, (int)grid3DIndex.y, (int)grid3DIndex.z) * cellWidth + gridMin);
   float halfCellWidth = cellWidth / 2.0f;
 
   int neighborMinIndexX, neighborMinIndexY, neighborMinIndexZ, neighborMaxIndexX, neighborMaxIndexY, neighborMaxIndexZ;
@@ -602,7 +603,7 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 
   // Find the other 8 neiboring cells based on which octant the particle is in
   glm::vec3 distanceToNeighbor =
-    pos[index] - (grid3DIndex * cellWidth + gridMin);
+    pos[index] - (glm::vec3((int)grid3DIndex.x, (int)grid3DIndex.y, (int)grid3DIndex.z) * cellWidth + gridMin);
   float halfCellWidth = cellWidth / 2.0f;
 
   int neighborMinIndexX, 
@@ -613,30 +614,30 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
             neighborMaxIndexZ;
 
   if (distanceToNeighbor.x < halfCellWidth) {
-    neighborMinIndexX = (int)grid3DIndex.x - 1 >= 0 ? (int)grid3DIndex.x - 1 : (int)grid3DIndex.x;
+    neighborMinIndexX = (int)grid3DIndex.x - 1;
     neighborMaxIndexX = (int)grid3DIndex.x;
   }
   else {
     neighborMinIndexX = (int)grid3DIndex.x;
-    neighborMaxIndexX = (int)grid3DIndex.x + 1 < N ? (int)grid3DIndex.x + 1 : (int)grid3DIndex.x;
+    neighborMaxIndexX = (int)grid3DIndex.x + 1;
   }
 
   if (distanceToNeighbor.y < halfCellWidth) {
-    neighborMinIndexY = (int)grid3DIndex.y - 1 >= 0 ? (int)grid3DIndex.y - 1 : (int)grid3DIndex.y;
+    neighborMinIndexY = (int)grid3DIndex.y - 1;
     neighborMaxIndexY = (int)grid3DIndex.y;
   }
   else {
     neighborMinIndexY = (int)grid3DIndex.y;
-    neighborMaxIndexY = (int)grid3DIndex.y + 1 < N ? (int)grid3DIndex.y + 1 : (int)grid3DIndex.y;
+    neighborMaxIndexY = (int)grid3DIndex.y + 1;
   }
 
   if (distanceToNeighbor.z < halfCellWidth) {
-    neighborMinIndexZ = (int)grid3DIndex.z - 1 >= 0 ? (int)grid3DIndex.z - 1 : (int)grid3DIndex.z;
+    neighborMinIndexZ = (int)grid3DIndex.z - 1;
     neighborMaxIndexZ = (int)grid3DIndex.z;
   }
   else {
     neighborMinIndexZ = (int)grid3DIndex.z;
-    neighborMaxIndexZ = (int)grid3DIndex.z + 1 < N ? (int)grid3DIndex.z + 1 : (int)grid3DIndex.z;
+    neighborMaxIndexZ = (int)grid3DIndex.z + 1;
   }
 
   // These are to keep track of velocity computation
@@ -648,17 +649,18 @@ __global__ void kernUpdateVelNeighborSearchCoherent(
 
   // Loop through neighbor cells and find all boids in them
   int neighborIndex, neighborCellStartIndex, neighborCellEndIndex;
-  for (auto z = neighborMinIndexZ; z <= neighborMaxIndexZ; ++z) {
-    for (auto y = neighborMinIndexY; y <= neighborMaxIndexY; ++y) {
-      for (auto x = neighborMinIndexX; x <= neighborMaxIndexX; ++x) {
+  for (int z = neighborMinIndexZ; z <= neighborMaxIndexZ; ++z) {
+    for (int y = neighborMinIndexY; y <= neighborMaxIndexY; ++y) {
+      for (int x = neighborMinIndexX; x <= neighborMaxIndexX; ++x) {
 
         // Compute velocity contribution from particles in this neighboring cell
-        neighborIndex = gridIndex3Dto1D(x, y, z, gridResolution);
+        neighborIndex = gridIndex3Dto1D(x % gridResolution, y % gridResolution, z % gridResolution, gridResolution);
         neighborCellStartIndex = gridCellStartIndices[neighborIndex];
         neighborCellEndIndex = gridCellEndIndices[neighborIndex];
 
         if (neighborCellStartIndex >= 0 && neighborCellStartIndex <= neighborCellEndIndex &&
           neighborCellEndIndex >= neighborCellStartIndex && neighborCellEndIndex < N) {
+
 
           //Compute velocity
           for (auto neighborBoidIndex = neighborCellStartIndex; neighborBoidIndex < neighborCellEndIndex; ++neighborBoidIndex) {
