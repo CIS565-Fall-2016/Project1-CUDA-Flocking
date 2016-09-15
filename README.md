@@ -30,7 +30,7 @@ I choose to use 1st method : Disable visualization (#define VISUALIZE to 0 ) to 
 ###Without Visualization
 ####(#define VISUALIZE 0)
 |    Number of boids | 5000 | 15000 | 25000 | 35000 | 45000 | 55000 | 65000 | 75000 | 85000 | 95000 |
-| ------------- |:-------------:| -----:|
+| ------------- |:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:|:-------------:| -----:|
 | Brute Force neighbor search FPS | 57.7 | 6.6 | 2.2 | | | | | | | |
 | Uniform Grid neighbor search  FPS  | 580 | 250 | 160 | 108.4 | 80.4 | 63.6 | 53.2 | 42.7 | 30.5 | 25.7 |  
 | Coherent Uniform Grid neighbor search FPS | 680 | 300 | 180 | 130 | 100.7 | 78.3 | 67.4 | 57.4 | 49.5 | 39.7 |
