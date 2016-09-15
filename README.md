@@ -36,7 +36,7 @@ I choose to use 1st method : Disable visualization (#define VISUALIZE to 0 ) to 
 | Coherent Uniform Grid neighbor search FPS | 680 | 300 | 180 | 130 | 100.7 | 78.3 | 67.4 | 57.4 | 49.5 | 39.7 |
 
 We could see the result from this visualized chart I made.
-![alt text](https://github.com/xueyinw/Project1-CUDA-Flocking/blob/master/images/AlgorithmComparision.png"Xueyin's Updated Chart")
+![alt text](https://github.com/xueyinw/Project1-CUDA-Flocking/blob/master/images/AlgorithmComparision.png "Xueyin's Updated Chart")
 
 We could see the comparison of the FPS situation between Brute Search, Uniform Grid and Coherent Uniform Grid when boids' number increases.
 
