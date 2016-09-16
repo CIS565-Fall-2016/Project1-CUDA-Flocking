@@ -53,7 +53,7 @@ The block size tested are: 1, 128, 512 (maxed at 512 threads per block on my mac
 |500000|	12.5|	20.6|	(crash)|
 |1000000|	52|	74|	(crash)|
 
-![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/charts/performance.png "Naive vs. Coherent vs scattered uniform grid performance")
+![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/charts/performace.png "Naive vs. Coherent vs scattered uniform grid performance")
 
 For each implmentation, as the number of boids increases, there is a big drop in performance. This is due to the fact that for each boid's velocity computation, we need loop through a list of potential neighbors that can affect the boid. The biggest optimization made in each implementation is a improvement on how efficient we can iterate through these neighbors by partitioning them into a uniform grid and rearrange their data in a coherent memory.
 
