@@ -43,15 +43,37 @@ To run performance analysis, I used CUDA to wrap around the simulation step and 
 The boid count tested are: 1000, 5000, 50000, 100000, 150000
 The block size tested are: 1, 128, 512 (maxed at 512 threads per block on my machine)
 
+**Table showing simulation time per frame (in ms) vs. number of boids). Block size is 128.**
+
+| Boid count |	Coherent	| Uniform |	Naive|
+| ---------- | -------- | ------- | ---- |
+|5000|	0.2|	0.2|	4.3|
+|50000|	1.2|	1.5|	166|
+|100000|	1.8|	2.6|	654|
+|500000|	12.5|	20.6|	(crash)|
+|1000000|	52|	74|	(crash)|
+
+![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/charts/performance.png "Naive vs. Coherent vs scattered uniform grid performance")
+
 For each implmentation, as the number of boids increases, there is a big drop in performance. This is due to the fact that for each boid's velocity computation, we need loop through a list of potential neighbors that can affect the boid. The biggest optimization made in each implementation is a improvement on how efficient we can iterate through these neighbors by partitioning them into a uniform grid and rearrange their data in a coherent memory.
 
-![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/charts/coherent_performance.png "Coherent uniform grid performance")
+Changing the block size doesn't seem to increases performace. However, I did find an interesting pattern. At every block size that is a power of 2, the performance is optimal. I tested this with 1,000,000 in coherent grid (~46ms max) and scattered uniform grid (~74ms max).
 
-Changing the block size increases the number of threads per block. This seems to affects the performance of the coherent uniform grid implementation. It might be due to the fact that more threads can now access data sequentially in a shared warp compared to the other implementations. Increasing the number of block count seems to have the opposite effect as it reduces the number of threads per block instead and data are more scattered through more blocks in memory now.
+**Table showing block size vs. simulation time per frame (in ms)**
 
-For the coherent uniform grid, I did see a great performance improvements as the number of boids increases up to 100000 and more. At this point, we immediately see the coherent data pays off. From my performance analysis, I observed that at 150000 boids, coherent uniform grid is ~400ms faster than scattered uniform grid. This is a big improvement!
+| Block size |	Coherent |	Uniform |
+| ---------- | -------- | ------- |
+|32|	45|	74|
+|35|	74|	113|
+|64|	44|	73|
+|100|	54|	87|
+|128|	46|	74|
+|256|	45|	73|
+|400|	54|	85|
+|512|	46|	73|
+|600|	68|	105|
+|1024|	46|	72|
 
-![alt text](https://github.com/trungtle/Project1-CUDA-Flocking/blob/master/images/charts/coherent_vs_uniform.png "Coherent vs scattered uniform grid performance")
-
+When comparing between coherent and scattered uniform grids, I did see a great performance improvement with the coherent data implementation as the number of boids increases. From my performance analysis, I observed that at 1000000 boids and kernel block size 128, coherent uniform grid is ~20ms faster than scattered uniform grid. This is a big improvement! This is due to the fact that we take advantage of spatial coherence can access each neighboring boid's data sequentially in memory.
 
 **Note**: I also updated the -arch=sm_52 version to make it compatible for my machine
