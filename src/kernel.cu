@@ -17,6 +17,13 @@
 #endif
 
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
+#define DEBUG 1
+
+void debug(const char * msg) {
+#if DEBUG
+	printf(msg);
+#endif
+}
 
 /**
 * Check for CUDA errors; print and exit if there was a problem.
@@ -170,15 +177,15 @@ void Boids::initSimulation(int N) {
   gridMinimum.z -= halfGridWidth;
 
   //// TODO-2.1 TODO-2.3 - Allocate additional buffers here.
-  //cudaMalloc((void**)&dev_particleArrayIndices, N * sizeof(int));
-  //checkCUDAErrorWithLine("cudaMalloc dev_particleArrayIndices failed!");
-  //cudaMalloc((void**)&dev_particleGridIndices, N * sizeof(int));
-  //checkCUDAErrorWithLine("cudaMalloc dev_particleGridIndices failed!");
-  //cudaMalloc((void**)&dev_gridCellStartIndices, gridCellCount * sizeof(int));
-  //checkCUDAErrorWithLine("cudaMalloc dev_gridCellStartIndices failed!");
-  //cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
-  //checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
-  //cudaThreadSynchronize();
+  cudaMalloc((void**)&dev_particleArrayIndices, N * sizeof(int));
+  checkCUDAErrorWithLine("cudaMalloc dev_particleArrayIndices failed!");
+  cudaMalloc((void**)&dev_particleGridIndices, N * sizeof(int));
+  checkCUDAErrorWithLine("cudaMalloc dev_particleGridIndices failed!");
+  cudaMalloc((void**)&dev_gridCellStartIndices, gridCellCount * sizeof(int));
+  checkCUDAErrorWithLine("cudaMalloc dev_gridCellStartIndices failed!");
+  cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
+  checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
+  cudaThreadSynchronize();
 }
 
 
@@ -372,8 +379,8 @@ __global__ void kernComputeIndices(int N, int gridResolution,
 		gridIndices[index] = gridIndex3Dto1D(
 			(int)grid.x, (int)grid.y, (int)grid.z, gridResolution);
 		indices[index] = index;
-		printf("grid %d: %d", index, gridIndices[index]);
-		printf("index %d: %d", index, indices[index]);
+		//printf("grid %d: %d", index, gridIndices[index]);
+		//printf("index %d: %d", index, indices[index]);
 	}
 }
 
@@ -392,9 +399,9 @@ __global__ void test(int *boidIndices, int *grids,
 	int y = grids[0];
 	int z = gridCellStartIndices[0];
 	int w = gridCellEndIndices[0];
-	if (1) {
-		printf("test");
-	}
+	//if (1) {
+	//	printf("test");
+	//}
 }
 
 __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
