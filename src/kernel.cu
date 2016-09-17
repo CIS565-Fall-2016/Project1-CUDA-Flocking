@@ -268,7 +268,15 @@ __device__ glm::vec3 computeVelocityChange(int start, int end,
 	glm::vec3 cohesion(0.0f);
 
 	for (int i = start; i < end; ++i) {
-		int arrayIndex = (particleArrayIndices == NULL) ? i : particleArrayIndices[i];
+		int arrayIndex = i;
+		int selfIndex = iSelf;
+		if (particleArrayIndices) {
+			arrayIndex = particleArrayIndices[i];
+			selfIndex = particleArrayIndices[iSelf];
+			
+		}
+		if (arrayIndex == selfIndex) continue;
+
 		if (arrayIndex == iSelf) continue;
 
 		glm::vec3 thatPos = pos[arrayIndex];
