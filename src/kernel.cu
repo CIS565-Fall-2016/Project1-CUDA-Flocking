@@ -169,16 +169,16 @@ void Boids::initSimulation(int N) {
   gridMinimum.y -= halfGridWidth;
   gridMinimum.z -= halfGridWidth;
 
-  // TODO-2.1 TODO-2.3 - Allocate additional buffers here.
-  cudaMalloc((void**)&dev_particleArrayIndices, N * sizeof(int));
-  checkCUDAErrorWithLine("cudaMalloc dev_particleArrayIndices failed!");
-  cudaMalloc((void**)&dev_particleGridIndices, N * sizeof(int));
-  checkCUDAErrorWithLine("cudaMalloc dev_particleGridIndices failed!");
-  cudaMalloc((void**)&dev_gridCellStartIndices, gridCellCount * sizeof(int));
-  checkCUDAErrorWithLine("cudaMalloc dev_gridCellStartIndices failed!");
-  cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
-  checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
-  cudaThreadSynchronize();
+  //// TODO-2.1 TODO-2.3 - Allocate additional buffers here.
+  //cudaMalloc((void**)&dev_particleArrayIndices, N * sizeof(int));
+  //checkCUDAErrorWithLine("cudaMalloc dev_particleArrayIndices failed!");
+  //cudaMalloc((void**)&dev_particleGridIndices, N * sizeof(int));
+  //checkCUDAErrorWithLine("cudaMalloc dev_particleGridIndices failed!");
+  //cudaMalloc((void**)&dev_gridCellStartIndices, gridCellCount * sizeof(int));
+  //checkCUDAErrorWithLine("cudaMalloc dev_gridCellStartIndices failed!");
+  //cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
+  //checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
+  //cudaThreadSynchronize();
 }
 
 
@@ -310,7 +310,7 @@ __global__ void kernUpdateVelocityBruteForce(int N, glm::vec3 *pos,
 
   glm::vec3 acceleration = computeVelocityChange(0, N, index, NULL, pos, vel1);
 
-  glm::vec3 test = updateVelocity(acceleration, vel1[index]);
+  //glm::vec3 test = updateVelocity(acceleration, vel1[index]);
   glm::vec3 new_vel = vel1[index] + acceleration;
 
   // Clamp the speed
