@@ -365,6 +365,13 @@ __device__ int gridIndex3Dto1D(int x, int y, int z, int gridResolution) {
   return x + y * gridResolution + z * gridResolution * gridResolution;
 }
 
+__device__ int posToGridIndex(glm::vec3 pos, glm::vec3 gridMin, 
+	float inverseCellWidth, int gridResolution) {
+		glm::vec3 grid((pos - gridMin) * inverseCellWidth);
+		return gridIndex3Dto1D(
+			(int)grid.x, (int)grid.y, (int)grid.z, gridResolution);
+}
+
 // gridResolution: number of grids per side
 // gridMin: value of most negative point in the grid
 __global__ void kernComputeIndices(int N, int gridResolution,
@@ -375,12 +382,9 @@ __global__ void kernComputeIndices(int N, int gridResolution,
 	int index = threadIdx.x + (blockIdx.x * blockDim.x);
 	if (index < N) {
 		glm::vec3 thisPos = pos[index];
-		glm::vec3 grid((thisPos - gridMin) * inverseCellWidth);
-		gridIndices[index] = gridIndex3Dto1D(
-			(int)grid.x, (int)grid.y, (int)grid.z, gridResolution);
+		gridIndices[index] = posToGridIndex(thisPos, gridMin,
+			inverseCellWidth, gridResolution);
 		indices[index] = index;
-		//printf("grid %d: %d", index, gridIndices[index]);
-		//printf("index %d: %d", index, indices[index]);
 	}
 }
 
@@ -443,22 +447,26 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	  // - Identify which cells may contain neighbors. This isn't always 8.
 	  // - For each cell, read the start/end indices in the boid pointer array.
 	  int arrayIndex = particleArrayIndices[index];
+	  glm::vec3 thisPos = pos[arrayIndex];
+	  int grids[9];
 	  int grid = particleGridIndices[arrayIndex];
+	  int gridTest = posToGridIndex(thisPos, gridMin, 
+		  inverseCellWidth, gridResolution);
 	  int start = gridCellStartIndices[grid];
 	  int end = gridCellEndIndices[grid];
 	  // - Access each boid in the cell and compute velocity change from
 	  //   the boids rules, if this boid is within the neighborhood distance.
 	  glm::vec3 acceleration = computeVelocityChange(0, N, arrayIndex, 
 		  particleArrayIndices, pos, vel1);
-	  glm::vec3 new_vel = vel1[index] + acceleration;
+	  glm::vec3 new_vel = vel1[arrayIndex] + acceleration;
 	  // - Clamp the speed change before putting the new speed in vel2
 
 	  float currentSpeed = glm::length(new_vel);
 	  float speed = fmin(currentSpeed, maxSpeed);
 
 	  // Record the new velocity into vel2. Question: why NOT vel1?
-	  vel2[index] = glm::normalize(new_vel) * speed;
-	  vel1[index] = vel2[index];
+	  vel2[arrayIndex] = glm::normalize(new_vel) * speed;
+	  vel1[arrayIndex] = vel2[arrayIndex];
   }
 }
 
