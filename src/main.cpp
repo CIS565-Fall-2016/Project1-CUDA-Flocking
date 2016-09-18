@@ -262,6 +262,7 @@ void initShaders(GLuint * program) {
                        // your CUDA development setup is ready to go.
 
     while (!glfwWindowShouldClose(window)) {
+	//for (int i = 0; i < 1;  i++) {
       glfwPollEvents();
 
       frame++;
