@@ -305,33 +305,42 @@ __device__ glm::vec3 computeVelocityChangeInGrids(
 	glm::vec3 separate(0.0f);
 	glm::vec3 cohesion(0.0f);
 
+	int j = 0;
 	for (; *gridsToSearch; gridsToSearch++) {
+		if (*gridsToSearch == *(gridsToSearch - 1)) continue;
 		int start = gridStartIndices[*gridsToSearch];
 		int end = gridEndIndices[*gridsToSearch];
-	}
 
-	for (int i = start; i < end; ++i) {
-		if (i == iSelf) continue;
+		for (int i = start; i < end; ++i) {
+			if (i != j) {
+				i--; 
+				i++;
+			}
+			j++;
+			if (i == iSelf) continue;
 
-		glm::vec3 thatPos = pos[i];
+			glm::vec3 thatPos = pos[i];
 
-		float distance = glm::length(thatPos - thisPos);
+			float distance = glm::length(thatPos - thisPos);
 
-		// Rule 1: Cohesion: boids fly towards the center of mass of neighboring boids
-		if (distance < rule1Distance) {
-			center += thatPos;
-			neighborCount += 1;
+			// Rule 1: Cohesion: boids fly towards the center of mass of neighboring boids
+			if (distance < rule1Distance) {
+				center += thatPos;
+				neighborCount += 1;
+			}
+
+			// Rule 2: Separation: boids try to keep a small distance away from each other
+			if (distance < rule2Distance) {
+				separate -= thatPos - thisPos;
+			}
+
+			// Rule 3: Alignment: boids try to match the velocities of neighboring boids
+			if (distance < rule3Distance) {
+				cohesion += vel[i];
+			}
 		}
 
-		// Rule 2: Separation: boids try to keep a small distance away from each other
-		if (distance < rule2Distance) {
-			separate -= thatPos - thisPos;
-		}
 
-		// Rule 3: Alignment: boids try to match the velocities of neighboring boids
-		if (distance < rule3Distance) {
-			cohesion += vel[i];
-		}
 	}
 
 	glm::vec3 toCenter(0.0f);
@@ -411,7 +420,7 @@ __device__ int posToGridIndex(glm::vec3 pos, glm::vec3 gridMin,
 	float inverseCellWidth, int gridResolution) {
 		glm::vec3 grid((pos - gridMin) * inverseCellWidth);
 		return gridIndex3Dto1D(
-			(int)grid.x, (int)grid.y, (int)grid.z, gridResolution);
+			(int)floor(grid.x), (int)floor(grid.y), (int)floor(grid.z), gridResolution);
 }
 
 // gridResolution: number of grids per side
@@ -488,9 +497,10 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	  // - Identify the grid cell that this particle is in
 	  // - Identify which cells may contain neighbors. This isn't always 8.
 	  // - For each cell, read the start/end indices in the boid pointer array.
+	  glm::vec3 thisPos = pos[index];
+
+
 	  int arrayIndex = particleArrayIndices[index];
-	  glm::vec3 thisPos = pos[arrayIndex];
-	  int grids[9];
 	  int grid = particleGridIndices[arrayIndex];
 	  int gridTest = posToGridIndex(thisPos, gridMin, 
 		  inverseCellWidth, gridResolution);
@@ -500,17 +510,17 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	  //   the boids rules, if this boid is within the neighborhood distance.
 	  glm::vec3 acceleration = computeVelocityChangeInGrids(
 		  particleGridIndices, gridCellStartIndices, gridCellEndIndices,
-		  0, N, arrayIndex, 
+		  0, N, index, 
 		  particleArrayIndices, pos, vel1);
-	  glm::vec3 new_vel = vel1[arrayIndex] + acceleration;
+	  glm::vec3 new_vel = vel1[index] + acceleration;
 	  // - Clamp the speed change before putting the new speed in vel2
 
 	  float currentSpeed = glm::length(new_vel);
 	  float speed = fmin(currentSpeed, maxSpeed);
 
 	  // Record the new velocity into vel2. Question: why NOT vel1?
-	  vel2[arrayIndex] = glm::normalize(new_vel) * speed;
-	  vel1[arrayIndex] = vel2[arrayIndex];
+	  vel2[index] = glm::normalize(new_vel) * speed;
+	  vel1[index] = vel2[index];
   }
 }
 
@@ -570,6 +580,10 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 		thrust_particleGridIndices,
 		thrust_particleGridIndices + numObjects,
 		thrust_particleArrayIndices);
+
+	test << <fullBlocksPerGrid, threadsPerBlock >> >(
+		dev_particleArrayIndices, dev_particleGridIndices,
+		dev_gridCellStartIndices, dev_gridCellEndIndices);
 
   // - Naively unroll the loop for finding the start and end indices of each
   //   cell's data pointers in the array of boid indices
