@@ -50,7 +50,7 @@ On grid size of 128 and visual disabled, other settings as source code.
 
 On 160000 particles and visual disabled, other settings as source code.
 
-| Particle Count|Scattered Grid FPS|Coherent Grid FPS
+| Grid Size|Scattered Grid FPS|Coherent Grid FPS
 | --------------|-----------------:|----------------:|
 | 4|115.5|154.4
 | 8|185.5|245.7
