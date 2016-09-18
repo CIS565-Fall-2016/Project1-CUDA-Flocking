@@ -251,6 +251,45 @@ __device__ glm::vec3 updateVelocity(
 
 	return glm::normalize(vel) * speed;
 }
+
+__device__ void searchParticles(int start, int end, int iSelf,
+	const int* particleArrayIndices, int* neighborCount,
+	const glm::vec3 *pos, const glm::vec3 *vel,
+	glm::vec3 *center, glm::vec3 *separate, glm::vec3 *cohesion) {
+	for (int i = start; i < end; ++i) {
+		if (i == iSelf) continue;
+		int arrayIndex = i;
+		int selfIndex = iSelf;
+		if (particleArrayIndices) {
+			arrayIndex = particleArrayIndices[i];
+			selfIndex = particleArrayIndices[iSelf];
+
+		}
+
+		glm::vec3 thisPos = pos[iSelf];
+		glm::vec3 thatPos = pos[i];
+
+		float distance = glm::length(thatPos - thisPos);
+
+		// Rule 1: Cohesion: boids fly towards the center of mass of neighboring boids
+		if (distance < rule1Distance) {
+			*center += thatPos;
+			neighborCount += 1;
+		}
+
+		// Rule 2: Separation: boids try to keep a small distance away from each other
+		if (distance < rule2Distance) {
+			*separate -= thatPos - thisPos;
+		}
+
+		// Rule 3: Alignment: boids try to match the velocities of neighboring boids
+		if (distance < rule3Distance) {
+			*cohesion += vel[arrayIndex];
+		}
+	}
+}
+
+
 /**
 * LOOK-1.2 You can use this as a helper for kernUpdateVelocityBruteForce.
 * __device__ code can be called from a __global__ context
@@ -268,18 +307,9 @@ __device__ glm::vec3 computeVelocityChange(int start, int end,
 	glm::vec3 cohesion(0.0f);
 
 	for (int i = start; i < end; ++i) {
-		int arrayIndex = i;
-		int selfIndex = iSelf;
-		if (particleArrayIndices) {
-			arrayIndex = particleArrayIndices[i];
-			selfIndex = particleArrayIndices[iSelf];
-			
-		}
-		if (arrayIndex == selfIndex) continue;
+		if (i == iSelf) continue;
 
-		if (arrayIndex == iSelf) continue;
-
-		glm::vec3 thatPos = pos[arrayIndex];
+		glm::vec3 thatPos = pos[i];
 
 		float distance = glm::length(thatPos - thisPos);
 
@@ -296,7 +326,7 @@ __device__ glm::vec3 computeVelocityChange(int start, int end,
 
 		// Rule 3: Alignment: boids try to match the velocities of neighboring boids
 		if (distance < rule3Distance) {
-			cohesion += vel[arrayIndex];
+			cohesion += vel[i];
 		}
 	}
 
