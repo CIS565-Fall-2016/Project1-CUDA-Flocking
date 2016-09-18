@@ -293,8 +293,10 @@ __device__ glm::vec3 computeVelocityChange(int start, int end,
 		+ cohesion * rule3Scale;
 }
 
-__device__ glm::vec3 computeVelocityChangeInGrids(int start, int end, 
-	int iSelf, const int *particleArrayIndices, const glm::vec3 *pos, const glm::vec3 *vel) {
+__device__ glm::vec3 computeVelocityChangeInGrids(
+	int *gridsToSearch, int *gridStartIndices, int *gridEndIndices,
+	int start, int end, int iSelf, const int *particleArrayIndices, 
+	const glm::vec3 *pos, const glm::vec3 *vel) {
 	glm::vec3 thisPos = pos[iSelf];
 
 	int neighborCount = 0;
@@ -302,6 +304,11 @@ __device__ glm::vec3 computeVelocityChangeInGrids(int start, int end,
 	glm::vec3 center(0.0f);
 	glm::vec3 separate(0.0f);
 	glm::vec3 cohesion(0.0f);
+
+	for (; *gridsToSearch; gridsToSearch++) {
+		int start = gridStartIndices[*gridsToSearch];
+		int end = gridEndIndices[*gridsToSearch];
+	}
 
 	for (int i = start; i < end; ++i) {
 		if (i == iSelf) continue;
@@ -491,7 +498,9 @@ __global__ void kernUpdateVelNeighborSearchScattered(
 	  int end = gridCellEndIndices[grid];
 	  // - Access each boid in the cell and compute velocity change from
 	  //   the boids rules, if this boid is within the neighborhood distance.
-	  glm::vec3 acceleration = computeVelocityChangeInGrids(0, N, arrayIndex, 
+	  glm::vec3 acceleration = computeVelocityChangeInGrids(
+		  particleGridIndices, gridCellStartIndices, gridCellEndIndices,
+		  0, N, arrayIndex, 
 		  particleArrayIndices, pos, vel1);
 	  glm::vec3 new_vel = vel1[arrayIndex] + acceleration;
 	  // - Clamp the speed change before putting the new speed in vel2
