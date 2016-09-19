@@ -322,14 +322,17 @@ __device__ glm::vec3 computeVelocityChangeInGrids(
     glm::vec3 separate(0.0f);
     glm::vec3 cohesion(0.0f);
 
+	int compare = 0;
     for (int j = 0; j < maxNumGridSearch; j++) {
         int grid = gridsToSearch[j];
         if (grid == gridOOB) continue;
 
-        int start = gridStartIndices[grid];
-        int end = gridEndIndices[grid];
+        start = gridStartIndices[grid];
+        end = gridEndIndices[grid];
+        debug("start: %d end: %d\n", start, end);
 
         for (int i = start; i < end; i++) {
+			compare++;
             int boid = particleArrayIndices[i];
 
             if (boid == index) continue;
@@ -355,6 +358,7 @@ __device__ glm::vec3 computeVelocityChangeInGrids(
             }
         }
     }
+	debug("number of comparisons: %d \n", compare);
 
     glm::vec3 toCenter(0.0f);
     if (neighborCount > 0) {
@@ -426,27 +430,26 @@ __global__ void kernUpdatePos(int N, float dt, glm::vec3 *pos, glm::vec3 *vel) {
 //            for(y)
 //             for(z)? Or some other order?
 __device__ int gridIndex3Dto1D(int x, int y, int z, int gridResolution) {
+  if (x < 0 || x >= gridResolution ||
+	  y < 0 || y >= gridResolution ||
+	  z < 0 || z >= gridResolution) {
+	   return gridOOB;
+  }
   return x + y * gridResolution + z * gridResolution * gridResolution;
 }
 
-__device__ int posToGridIndex(glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth, int gridResolution) {
-	int index = thread_index();
+__device__ glm::vec3 posToGrid(glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth, int gridResolution) {
 	glm::vec3 grid((pos - gridMin) * inverseCellWidth);
-	int x = (int)floor(grid.x);
-	int y = (int)floor(grid.y);
-	int z = (int)floor(grid.z);
+	grid = glm::floor(grid);
+	if ((int)grid.x == gridResolution) grid.x = 0;
+	if ((int)grid.y == gridResolution) grid.y = 0;
+	if ((int)grid.z == gridResolution) grid.z = 0;
+}
 
-	if (x == gridResolution) { x -= 1; }
-	if (y == gridResolution) { y -= 1; }
-	if (z == gridResolution) { z -= 1; }
-
-	if (x < 0 || x >= gridResolution ||
-		y < 0 || y >= gridResolution ||
-		z < 0 || z >= gridResolution) {
-		 return gridOOB;
-	}
-
-	return gridIndex3Dto1D(x, y, z, gridResolution);
+__device__ int posToGridIndex(glm::vec3 pos, glm::vec3 gridMin,
+	float inverseCellWidth, int gridResolution) {
+	glm::vec3 grid = posToGrid(pos, gridMin, inverseCellWidth, gridResolution);
+	return gridIndex3Dto1D((int)grid.x, (int)grid.y, (int)grid.z, gridResolution);
 }
 
 // gridResolution: number of grids per side
@@ -493,17 +496,22 @@ __global__ void kernIdentifyCellStartEnd(int N, int *particleGridIndices,
     int index = thread_index();
     if (index < N) {
         int thisGrid = particleGridIndices[index];
-        int prevGrid = particleGridIndices[index - 1];
         if (index == 0) {
-            prevGrid = particleGridIndices[N - 1];
+          gridCellStartIndices[thisGrid] = 0;
+          return;
+        }
+        int prevGrid = particleGridIndices[index - 1];
+        if (index == (N - 1)) {
+          gridCellEndIndices[thisGrid] = index;
+          if (thisGrid != prevGrid) {
+            gridCellStartIndices[thisGrid] = index;
+          }
+          return;
         }
         if (thisGrid != prevGrid) {
             // "this index doesn't match the one before it, must be a new cell!"
             gridCellStartIndices[thisGrid] = index;
             gridCellEndIndices[prevGrid] = index;
-            if (index == 0) {
-                gridCellEndIndices[prevGrid] = N;
-            }
         }
     }
 }
@@ -517,22 +525,24 @@ __device__ void updateVelNeighborSearch(
   // TODO-2.3 - This should be very similar to kernUpdateVelNeighborSearchScattered,
   // except with one less level of indirection.
   int index = thread_index();
+  for (int i = 0; i < N; i++) {
+    debug0("%d ", gridCellStartIndices[i]);
+  }
   if (index < N) {
       // - Identify the grid cell that this particle is in
       // - Identify which cells may contain neighbors. This isn't always 8.
       // - For each cell, read the start/end indices in the boid pointer array.
       glm::vec3 thisPos = pos[index];
-      int thisGrid = posToGridIndex(thisPos, gridMin, inverseCellWidth, gridResolution);
+      glm::vec3 thisGrid = posToGrid(thisPos, gridMin, inverseCellWidth, gridResolution);
 
       int gridsToSearch[maxNumGridSearch];
       for (int x = -1; x <= 1; x++) {
           for (int y = -1; y <= 1; y++) {
               for (int z = -1; z <= 1; z++) {
-				  glm::vec3 offset = thisPos + cellWidth * glm::vec3(x, y, z);
-
-                  int grid = posToGridIndex(offset, gridMin, inverseCellWidth, gridResolution);
-				  int n = gridIndex3Dto1D(x + 1, y + 1, z + 1, dim); // map x, y, z to unique int between 1 and maxNumGridSearch
-				  gridsToSearch[n] = grid;
+              int grid = gridIndex3Dto1D(
+                thisGrid.x + x, thisGrid.y + y, thisGrid.z + z, gridResolution);
+              int n = gridIndex3Dto1D(x + 1, y + 1, z + 1, dim); // map x, y, z to unique int between 1 and maxNumGridSearch
+              gridsToSearch[n] = grid;
               }
           }
       }
@@ -624,11 +634,11 @@ void Boids::stepSimulationScatteredGrid(float dt) {
 
   // - Naively unroll the loop for finding the start and end indices of each
   //   cell's data pointers in the array of boid indices
-    //dim3 fullGrids((pow(gridSideCount, 3) + blockSize - 1) / blockSize);
-    //kernResetIntBuffer << <fullGrids, threadsPerBlock >> >(
-    //    numObjects, dev_gridCellStartIndices, -1);
-    //kernResetIntBuffer << <fullGrids, threadsPerBlock >> >(
-    //    numObjects, dev_gridCellEndIndices, -1);
+    dim3 fullGrids((pow(gridSideCount, 3) + blockSize - 1) / blockSize);
+    kernResetIntBuffer << <fullGrids, threadsPerBlock >> >(
+        numObjects, dev_gridCellStartIndices, -1);
+    kernResetIntBuffer << <fullGrids, threadsPerBlock >> >(
+        numObjects, dev_gridCellEndIndices, -1);
 
     kernIdentifyCellStartEnd << <fullBlocksPerGrid, threadsPerBlock >> >(
         numObjects, dev_particleGridIndices,    
@@ -645,9 +655,7 @@ void Boids::stepSimulationScatteredGrid(float dt) {
     kernUpdatePos << < fullBlocksPerGrid, threadsPerBlock >> >(
         numObjects, dt, dev_pos, dev_vel2);
   // - Ping-pong buffers as needed
-    glm::vec3 *swap = dev_vel1;
-    dev_vel1 = dev_vel2;
-    dev_vel2 = swap;
+	cudaMemcpy(dev_vel1, dev_vel2, numObjects * sizeof(glm::vec3), cudaMemcpyDeviceToDevice);
 }
 
 void Boids::stepSimulationCoherentGrid(float dt) {
