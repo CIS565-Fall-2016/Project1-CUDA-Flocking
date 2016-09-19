@@ -14,21 +14,41 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 1
+#define UNIFORM_GRID 0
 #define COHERENT_GRID 0
 #define fmin min
 #define fmax max
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 50000;
 const float DT = 0.2f;
+
+//////////////////////
+//glm::vec3 posToGrid(glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth, int gridResolution) {
+//  glm::vec3 grid((pos - gridMin) * inverseCellWidth);
+//  grid = glm::floor(grid);
+//  if ((int)grid.x == gridResolution) grid.x = 0;
+//  if ((int)grid.y == gridResolution) grid.y = 0;
+//  if ((int)grid.z == gridResolution) grid.z = 0;
+//  return grid;
+//}
+//////////////////////
+
 
 /**
 * C main function.
 */
 int main(int argc, char* argv[]) {
 	projectName = "565 CUDA Intro: Boids";
-	
+
+  ////////////
+  //glm::vec3 gridMin(0);
+  //glm::vec3 pos(1.5, 2.5, 3.5);
+  //glm::vec3 grid = posToGrid(pos, gridMin, 0.0, 1);
+  //printf("grid: %d, %d, %d", grid.x, grid.y, grid.z);
+
+  ////////////
+
   if (init(argc, argv)) {
     mainLoop();
     Boids::endSimulation();
@@ -226,8 +246,8 @@ void initShaders(GLuint * program) {
     Boids::unitTest(); // LOOK-1.2 We run some basic example code to make sure
                        // your CUDA development setup is ready to go.
 
-    //while (!glfwWindowShouldClose(window)) {
-	for (int i = 0; i < 1;  i++) {
+    while (!glfwWindowShouldClose(window)) {
+	//for (int i = 0; i < 1;  i++) {
       glfwPollEvents();
 
       frame++;

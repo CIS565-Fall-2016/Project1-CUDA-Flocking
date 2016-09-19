@@ -17,7 +17,7 @@
 #endif
 
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
-#define DEBUG 1
+#define DEBUG 0
 #define dim 3
 #define maxNumGridSearch (dim * dim * dim)
 #define gridOOB -1
@@ -27,6 +27,7 @@
 #define debug0(...) if (index == 0) { printf(__VA_ARGS__); }
 #else
 #define debug(...) {}
+#define debug0(...) {}
 #endif
 
 /**
@@ -329,7 +330,7 @@ __device__ glm::vec3 computeVelocityChangeInGrids(
 
         start = gridStartIndices[grid];
         end = gridEndIndices[grid];
-        debug("start: %d end: %d\n", start, end);
+        debug0("start: %d end: %d\n", start, end);
 
         for (int i = start; i < end; i++) {
 			compare++;
@@ -358,7 +359,7 @@ __device__ glm::vec3 computeVelocityChangeInGrids(
             }
         }
     }
-	debug("number of comparisons: %d \n", compare);
+	debug0("number of comparisons: %d \n", compare);
 
     glm::vec3 toCenter(0.0f);
     if (neighborCount > 0) {
@@ -444,6 +445,7 @@ __device__ glm::vec3 posToGrid(glm::vec3 pos, glm::vec3 gridMin, float inverseCe
 	if ((int)grid.x == gridResolution) grid.x = 0;
 	if ((int)grid.y == gridResolution) grid.y = 0;
 	if ((int)grid.z == gridResolution) grid.z = 0;
+  return grid;
 }
 
 __device__ int posToGridIndex(glm::vec3 pos, glm::vec3 gridMin,
@@ -526,7 +528,7 @@ __device__ void updateVelNeighborSearch(
   // except with one less level of indirection.
   int index = thread_index();
   for (int i = 0; i < N; i++) {
-    debug0("%d ", gridCellStartIndices[i]);
+    //debug0("start[%d]: %d ", i, gridCellStartIndices[i]);
   }
   if (index < N) {
       // - Identify the grid cell that this particle is in
