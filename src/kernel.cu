@@ -17,7 +17,7 @@
 #endif
 
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
-#define DEBUG 0
+#define DEBUG 1
 #define dim 3
 #define maxNumGridSearch (dim * dim * dim)
 #define gridOOB -1
@@ -359,7 +359,7 @@ __device__ glm::vec3 computeVelocityChangeInGrids(
             }
         }
     }
-	debug0("number of comparisons: %d \n", compare);
+	debug("number of comparisons: %d \n", compare);
 
     glm::vec3 toCenter(0.0f);
     if (neighborCount > 0) {
@@ -528,7 +528,6 @@ __device__ void updateVelNeighborSearch(
   // except with one less level of indirection.
   int index = thread_index();
   for (int i = 0; i < N; i++) {
-    //debug0("start[%d]: %d ", i, gridCellStartIndices[i]);
   }
   if (index < N) {
       // - Identify the grid cell that this particle is in

@@ -18,6 +18,7 @@
 #define COHERENT_GRID 0
 #define fmin min
 #define fmax max
+#define DEBUG 1
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
 const int N_FOR_VIS = 50000;
@@ -247,7 +248,6 @@ void initShaders(GLuint * program) {
                        // your CUDA development setup is ready to go.
 
     while (!glfwWindowShouldClose(window)) {
-	//for (int i = 0; i < 1;  i++) {
       glfwPollEvents();
 
       frame++;
@@ -282,6 +282,9 @@ void initShaders(GLuint * program) {
 
       glfwSwapBuffers(window);
       #endif
+      if (DEBUG) {
+        break;
+      }
     }
     glfwDestroyWindow(window);
     glfwTerminate();
