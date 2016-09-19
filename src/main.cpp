@@ -20,7 +20,7 @@
 #define fmax max
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
+const int N_FOR_VIS = 500000;
 const float DT = 0.2f;
 
 /**
@@ -29,41 +29,6 @@ const float DT = 0.2f;
 int main(int argc, char* argv[]) {
 	projectName = "565 CUDA Intro: Boids";
 	
-	/////////////////////////////////
-	//int N = 5;
-	//int particleGridIndices[5] = { 680, 5376, 5571, 6628, 8990 };
-	//int gridCellEndIndices[8991];
-	//int gridCellStartIndices[8991];
- // for (int index = 0; index < N; index++) {
-	//  if (index < N) {
-	//	  int thisGrid = particleGridIndices[index];
-	//	  int prevGrid = particleGridIndices[index - 1];
-	//	  if (index == 4) {
-	//		  printf("");
-	//	  }
-	//	  if (index == 0) {
-	//		  prevGrid = particleGridIndices[N - 1];
-	//	  }
-	//	  if (thisGrid != prevGrid) {
-	//		  // "this index doesn't match the one before it, must be a new cell!"
-	//		  gridCellStartIndices[thisGrid] = index;
-	//		  gridCellEndIndices[prevGrid] = index;
-	//		  if (index == 0) {
-	//			  gridCellEndIndices[prevGrid] = N;
-	//		  }
-	//	  }
-	//  }
- // }
- // for (int i = 0; i < N; i++) {
-	//  int grid = particleGridIndices[i];
-	//  printf("start[%d] = %d\n", grid, gridCellStartIndices[grid]);
- // }
- // for (int i = 0; i < N; i++) {
-	//  int grid = particleGridIndices[i];
-	//  printf("end[%d] = %d\n", grid, gridCellEndIndices[grid]);
- // }
-  ///////////////////
-
   if (init(argc, argv)) {
     mainLoop();
     Boids::endSimulation();
@@ -240,7 +205,7 @@ void initShaders(GLuint * program) {
     #if UNIFORM_GRID && COHERENT_GRID
     Boids::stepSimulationCoherentGrid(DT);
     #elif UNIFORM_GRID
-    Boids::stepSimulationScatteredGrid(DT);
+	Boids::stepSimulationScatteredGrid(DT);
     #else
     Boids::stepSimulationNaive(DT);
     #endif
