@@ -22,7 +22,7 @@
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
 const int N_FOR_VIS = 50000;
-const float DT = 0.2f;
+const float DT = 0.1f;
 
 //////////////////////
 //glm::vec3 posToGrid(glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth, int gridResolution) {
