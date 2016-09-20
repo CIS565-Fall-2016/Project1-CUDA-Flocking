@@ -8,3 +8,5 @@ Project 1 - Flocking**
 
 Include screenshots, analysis, etc. (Remember, this is public, so don't put
 anything here that you don't want to share with the world.)
+
+![alt text] (https://github.com/lobachevzky/Project1-CUDA-Flocking/blob/working/project1.gif "Running with all possible optimizations")
