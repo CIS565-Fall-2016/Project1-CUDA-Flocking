@@ -17,7 +17,7 @@
 #endif
 
 #define checkCUDAErrorWithLine(msg) checkCUDAError(msg, __LINE__)
-#define DEBUG 1
+#define DEBUG 0
 #define dim 3
 #define maxNumGridSearch (dim * dim * dim)
 #define gridOOB -1
@@ -25,9 +25,11 @@
 #if DEBUG
 #define debug(...) printf(__VA_ARGS__);
 #define debug0(...) if (index == 0) { printf(__VA_ARGS__); }
+#define debug4000(...) if (index == 4000) { printf(__VA_ARGS__); }
 #else
 #define debug(...) {}
 #define debug0(...) {}
+#define debug4000(...) {}
 #endif
 
 /**
@@ -198,9 +200,9 @@ void Boids::initSimulation(int N) {
   checkCUDAErrorWithLine("cudaMalloc dev_gridCellStartIndices failed!");
   cudaMalloc((void**)&dev_gridCellEndIndices, gridCellCount * sizeof(int));
   checkCUDAErrorWithLine("cudaMalloc dev_gridCellEndIndices failed!");
-  cudaMalloc((void**)&dev_sortedPos, gridCellCount * sizeof(int));
+  cudaMalloc((void**)&dev_sortedPos, N * sizeof(glm::vec3));
   checkCUDAErrorWithLine("cudaMalloc dev_sortedPos failed!");
-  cudaMalloc((void**)&dev_sortedVel, gridCellCount * sizeof(int));
+  cudaMalloc((void**)&dev_sortedVel, N * sizeof(glm::vec3));
   checkCUDAErrorWithLine("cudaMalloc dev_sortedVel failed!");
   cudaThreadSynchronize();
 }
@@ -376,21 +378,16 @@ __device__ void updateVelocities(glm::vec3 *vel1, glm::vec3 *vel2,
       glm::vec3 newVel = vel1[index] + acceleration;
       // - Clamp the speed change before putting the new speed in vel2
 
-	  debug0("new_vel = %f %f %f\n", newVel.x, newVel.y, newVel.z);
       float currentSpeed = glm::length(newVel);
-	  debug0("currentSpeed = %f\n", currentSpeed);
       float speed = fmin(currentSpeed, maxSpeed);
-	  debug0("speed = %f\n", speed);
 
 	  glm::vec3 norm = glm::normalize(newVel);
 	  if (newVel.x == 0 && newVel.y == 0 && newVel.z == 0) {
 		  norm = glm::vec3(0.0);
 	  }
-	  debug0("normalize(newVel) = %f %f %f\n", norm.x, norm.y, norm.z);
 
       // Record the new velocity into vel2. Question: why NOT vel1?
       vel2[index] = norm * speed;
-	  debug0("vel2[index] = %f %f %f\n", vel2[index].x, vel2[index].y, vel2[index].z);
 }
 
 /**
