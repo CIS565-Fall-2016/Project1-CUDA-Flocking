@@ -18,10 +18,10 @@
 #define COHERENT_GRID 1
 #define fmin min
 #define fmax max
-#define DEBUG 1
+#define DEBUG 0
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 500;
+const int N_FOR_VIS = 5000;
 const float DT = 0.2f;
 
 //////////////////////
@@ -44,10 +44,10 @@ int main(int argc, char* argv[]) {
 
   ////////////
   //glm::vec3 gridMin(0);
-  //glm::vec3 pos(1.5, 2.5, 3.5);
-  //glm::vec3 grid = posToGrid(pos, gridMin, 0.0, 1);
+  //glm::vec3 grid = glm::normalize(gridMin);
   //printf("grid: %d, %d, %d", grid.x, grid.y, grid.z);
-
+  //int * crash;
+  //int x = crash[0];
   ////////////
 
   if (init(argc, argv)) {
