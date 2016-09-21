@@ -73,6 +73,11 @@ Boids simulation running 3 implementation versions.
         - Average CUDA frame time 21.239281 ms
         - Average CUDA frame time 21.476675 ms
 
+    * Here's a graph of performance tests running from 5000 to 
+    50000 incrementing by 5000:
+![testAll](images/fig_1.png)
+![testGridOnly](images/fig_2.png)
+
     Here we can clearly see the advantage of using grids.
     Especially the coherent solution which reduces index lookup.
 
