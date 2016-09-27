@@ -14,18 +14,41 @@
 
 // LOOK-2.1 LOOK-2.3 - toggles for UNIFORM_GRID and COHERENT_GRID
 #define VISUALIZE 1
-#define UNIFORM_GRID 0
+#define UNIFORM_GRID 1
 #define COHERENT_GRID 0
+#define fmin min
+#define fmax max
+#define DEBUG 0
 
 // LOOK-1.2 - change this to adjust particle count in the simulation
-const int N_FOR_VIS = 5000;
-const float DT = 0.2f;
+const int N_FOR_VIS = 50000;
+const float DT = 0.1f;
+
+//////////////////////
+//glm::vec3 posToGrid(glm::vec3 pos, glm::vec3 gridMin, float inverseCellWidth, int gridResolution) {
+//  glm::vec3 grid((pos - gridMin) * inverseCellWidth);
+//  grid = glm::floor(grid);
+//  if ((int)grid.x == gridResolution) grid.x = 0;
+//  if ((int)grid.y == gridResolution) grid.y = 0;
+//  if ((int)grid.z == gridResolution) grid.z = 0;
+//  return grid;
+//}
+//////////////////////
+
 
 /**
 * C main function.
 */
 int main(int argc, char* argv[]) {
-  projectName = "565 CUDA Intro: Boids";
+	projectName = "565 CUDA Intro: Boids";
+
+  ////////////
+  //glm::vec3 gridMin(0);
+  //glm::vec3 grid = glm::normalize(gridMin);
+  //printf("grid: %d, %d, %d", grid.x, grid.y, grid.z);
+  //int * crash;
+  //int x = crash[0];
+  ////////////
 
   if (init(argc, argv)) {
     mainLoop();
@@ -69,6 +92,7 @@ bool init(int argc, char **argv) {
 
   // Window setup stuff
   glfwSetErrorCallback(errorCallback);
+#define checkCUDAMallocError(msg) checkCUDAError(std::string("cudaMalloc ") + msg, __LINE__)
 
   if (!glfwInit()) {
     std::cout
@@ -202,7 +226,7 @@ void initShaders(GLuint * program) {
     #if UNIFORM_GRID && COHERENT_GRID
     Boids::stepSimulationCoherentGrid(DT);
     #elif UNIFORM_GRID
-    Boids::stepSimulationScatteredGrid(DT);
+	Boids::stepSimulationScatteredGrid(DT);
     #else
     Boids::stepSimulationNaive(DT);
     #endif
@@ -258,6 +282,9 @@ void initShaders(GLuint * program) {
 
       glfwSwapBuffers(window);
       #endif
+      if (DEBUG) {
+        break;
+      }
     }
     glfwDestroyWindow(window);
     glfwTerminate();
