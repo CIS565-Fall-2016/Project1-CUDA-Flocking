@@ -4,7 +4,7 @@ Project 1 - Flocking**
 ![alt text] (https://github.com/lobachevzky/Project1-CUDA-Flocking/blob/working/project1.gif "Running with all possible optimizations")
 
 * Ethan Brooks
-* Tested on: (TODO) Windows 22, i7-2222 @ 2.22GHz 22GB, GTX 222 222MB (Moore 2222 Lab)
+* Tested on: Windows 7, Intel(R) Xeon(R), GeForce GTX 1070 8GB (SIG Lab)
 
 #Flocking Simulation
 
